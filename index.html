@@ -23,7 +23,7 @@ input,textarea{-webkit-appearance:none}
 .btn-icon{width:42px;height:42px;border-radius:12px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .btn-icon:active{transform:scale(.92)}
 .btn-cam{background:rgba(255,255,255,.2)}
-.btn-doc{background:rgba(255,255,255,.35)}
+.btn-doc{background:rgba(255,255,255,.25)}
 .btn-add{background:#fff;color:#228be6;font-size:26px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .search-box{position:relative}
 .search-box input{width:100%;padding:10px 12px 10px 36px;border-radius:10px;border:none;background:rgba(255,255,255,.2);color:#fff;font-size:14px;outline:none}
@@ -34,20 +34,6 @@ input,textarea{-webkit-appearance:none}
 .ocr-banner.active{display:block}
 .ocr-progress{height:4px;background:#d0ebff;border-radius:2px;margin-top:8px;overflow:hidden}
 .ocr-progress-bar{height:100%;background:#228be6;border-radius:2px;transition:width .3s;width:0}
-
-/* Modal overlay */
-.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px}
-.modal-overlay.active{display:flex}
-.modal{background:#fff;border-radius:20px;padding:24px;max-width:340px;width:100%;text-align:center}
-.modal h3{font-size:18px;margin-bottom:8px}
-.modal p{font-size:14px;color:#868e96;margin-bottom:20px;line-height:1.5}
-.modal-btns{display:flex;gap:8px}
-.modal-btn{flex:1;padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:600;cursor:pointer}
-.modal-btn-primary{background:#228be6;color:#fff}
-.modal-btn-secondary{background:#f1f3f5;color:#495057}
-.modal-btn-skip{background:#fff;color:#868e96;border:1px solid #dee2e6}
-.modal-step{font-size:12px;color:#228be6;font-weight:600;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px}
-.modal-icon{font-size:40px;margin-bottom:12px}
 
 .patient-list{padding:12px 16px 120px}
 .empty-state{text-align:center;padding:60px 20px}
@@ -110,8 +96,9 @@ input,textarea{-webkit-appearance:none}
 .bc{flex:1;padding:10px;border-radius:10px;border:1px solid #e9ecef;background:#fff;font-size:14px;cursor:pointer}
 .bcd{flex:1;padding:10px;border-radius:10px;border:none;background:#e03131;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
 
-.allergy-box{background:#fff5f5;border:1px solid #ffc9c9;border-radius:8px;padding:8px 10px;font-size:14px;color:#e03131;width:100%;outline:none;font-family:inherit}
+.allergy-box{border:1px solid #ffc9c9;border-radius:8px;padding:8px 10px;font-size:14px;outline:none;width:100%;font-family:inherit;background:#fff5f5;color:#e03131}
 .allergy-box:focus{border-color:#e03131}
+.allergy-box::placeholder{color:#ffa8a8}
 
 .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#212529;color:#fff;padding:10px 20px;border-radius:10px;font-size:14px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%;text-align:center}
 .toast.show{opacity:1}
@@ -126,7 +113,7 @@ input,textarea{-webkit-appearance:none}
 <div><h1>Mes Patients</h1><span class="count" id="cnt">0 patient</span></div>
 <div class="header-actions">
 <button class="btn-icon btn-cam" onclick="triggerCam()" title="Etiquette"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="3"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.5"/></svg></button>
-<button class="btn-icon btn-doc" onclick="startConsultScan()" title="Consult anesth" style="font-size:18px">📄</button>
+<button class="btn-icon btn-doc" onclick="startConsult()" title="Consult anesth"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></button>
 <button class="btn-icon btn-add" onclick="addP()">+</button>
 </div></div>
 <div class="search-box">
@@ -137,20 +124,6 @@ input,textarea{-webkit-appearance:none}
 <div class="ocr-banner" id="ocrB"><span id="ocrText">Lecture en cours...</span><div class="ocr-progress"><div class="ocr-progress-bar" id="ocrP"></div></div></div>
 <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handlePhoto(event)">
 <input type="file" id="consultInput" accept="image/*" capture="environment" onchange="handleConsultPhoto(event)">
-
-<!-- Modal for consult scan flow -->
-<div class="modal-overlay" id="consultModal">
-<div class="modal">
-<div class="modal-step" id="modalStep">ETAPE 1/2</div>
-<div class="modal-icon" id="modalIcon">📄</div>
-<h3 id="modalTitle">Page 1 de la consultation</h3>
-<p id="modalDesc">Prends en photo la premiere page de la consultation d'anesthesie</p>
-<div class="modal-btns">
-<button class="modal-btn modal-btn-skip" onclick="skipConsultPage()">Passer</button>
-<button class="modal-btn modal-btn-primary" onclick="document.getElementById('consultInput').click()">📷 Photo</button>
-</div>
-</div>
-</div>
 
 <div class="tools">
 <button class="bt" onclick="exportAll()">Sauvegarder</button>
@@ -171,8 +144,7 @@ async function sav(p){const d=await odb();return new Promise((s,j)=>{const t=d.t
 async function del(id){const d=await odb();return new Promise((s,j)=>{const t=d.transaction(ST,'readwrite');t.objectStore(ST).delete(id);t.oncomplete=()=>s();t.onerror=()=>j(t.error)})}
 
 // === STATE ===
-let P=[],exId=null,cfmId=null,activeBilan={};
-let consultStep=0,consultTexts=[];
+let P=[],exId=null,cfmId=null,activeBilan={},consultPages=[],saveTimers={};
 
 const BF=[
   {k:'hb',l:'Hb',u:'g/dL'},{k:'plq',l:'Plq',u:'G/L'},
@@ -209,6 +181,12 @@ init();
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function getABI(p){if(!p.bilans||!p.bilans.length)return -1;const i=activeBilan[p.id];return(i!==undefined&&i<p.bilans.length)?i:0}
 
+// Debounced save — saves 300ms after last keystroke
+function debouncedSav(p){
+  if(saveTimers[p.id])clearTimeout(saveTimers[p.id]);
+  saveTimers[p.id]=setTimeout(()=>sav(p),300);
+}
+
 // === RENDER ===
 function render(){
   const q=document.getElementById('si').value.toLowerCase().trim();
@@ -216,7 +194,7 @@ function render(){
   const o={critique:0,surveillance:1,stable:2};f.sort((a,b)=>(o[a.status]??3)-(o[b.status]??3));
   document.getElementById('cnt').textContent=P.length+' patient'+(P.length!==1?'s':'');
   const el=document.getElementById('pl');
-  if(!f.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏥</div><div class="empty-title">'+(q?'Aucun resultat':'Aucun patient')+'</div><div class="empty-sub">'+(q?'Essaie un autre terme':'Appuie sur + ou 📄 pour scanner une consult')+'</div></div>';return}
+  if(!f.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏥</div><div class="empty-title">'+(q?'Aucun resultat':'Aucun patient')+'</div><div class="empty-sub">'+(q?'Essaie un autre terme':'Appuie sur + ou camera')+'</div></div>';return}
   el.innerHTML=f.map(rc).join('');
 }
 
@@ -227,9 +205,9 @@ function rc(p){
 
   // ATCD
   let ah='<div class="atcd-tags">';
-  ATCD_LIST.forEach(a=>{const on=p.atcdList&&p.atcdList.includes(a);ah+='<span class="atcd-tag'+(on?' on':'')+'" onclick="toggleAtcd(\''+p.id+'\',\''+esc(a)+'\')">'+esc(a)+'</span>'});
+  ATCD_LIST.forEach(a=>{ah+='<span class="atcd-tag'+(p.atcdList.includes(a)?' on':'')+'" onclick="toggleAtcd(\''+p.id+'\',\''+esc(a)+'\')">'+esc(a)+'</span>'});
   if(p.atcdCustom)p.atcdCustom.forEach(a=>{ah+='<span class="atcd-tag on" onclick="removeCA(\''+p.id+'\',\''+esc(a)+'\')">'+esc(a)+' ✕</span>'});
-  ah+='</div><div class="atcd-custom-row"><input class="atcd-custom-input" id="atcdIn-'+p.id+'" placeholder="Autre ATCD..." onkeydown="if(event.key===\'Enter\')addCA(\''+p.id+'\')"><button class="atcd-custom-btn" onclick="addCA(\''+p.id+'\')">+</button></div>';
+  ah+='</div><div class="atcd-custom-row"><input class="atcd-custom-input" id="ai-'+p.id+'" placeholder="Autre ATCD..." onkeydown="if(event.key===\'Enter\')addCA(\''+p.id+'\')"><button class="atcd-custom-btn" onclick="addCA(\''+p.id+'\')">+</button></div>';
 
   // Bilan tabs
   let bt='<div class="bio-tabs"><div class="bio-tab bio-tab-add" onclick="addBilan(\''+p.id+'\')">+ Bilan</div>';
@@ -237,23 +215,24 @@ function rc(p){
   bt+='</div>';
 
   let bh='';
-  if(cb){bh='<div class="bg">'+BF.map(f=>'<div class="bi"><span class="bl">'+f.l+'</span><input type="text" inputmode="decimal" value="'+esc((cb.bio||{})[f.k]||'')+'" placeholder="—" onchange="uBio(\''+p.id+'\','+bi+',\''+f.k+'\',this.value)">'+(f.u?'<span class="bu">'+f.u+'</span>':'')+'</div>').join('')+'</div>'}
+  if(cb){bh='<div class="bg">'+BF.map(f=>'<div class="bi"><span class="bl">'+f.l+'</span><input type="text" inputmode="decimal" value="'+esc((cb.bio||{})[f.k]||'')+'" placeholder="—" oninput="uBio(\''+p.id+'\','+bi+',\''+f.k+'\',this.value)">'+(f.u?'<span class="bu">'+f.u+'</span>':'')+'</div>').join('')+'</div>'}
   else{bh='<div style="text-align:center;color:#868e96;font-size:13px;padding:12px">Appuie sur "+ Bilan"</div>'}
 
   return '<div class="card"><div class="card-header" onclick="tog(\''+p.id+'\')"><div class="dot dot-'+(p.status||'stable')+'"></div><div class="card-info"><div class="card-name">'+esc(p.nom||'—')+' '+esc(p.prenom||'')+'</div><div class="card-detail">'+esc(dt)+'</div></div><svg class="chev '+(op?'open':'')+'" width="20" height="20" viewBox="0 0 20 20"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div><div class="card-body '+(op?'open':'')+'">'
-  +'<div class="grid2">'+fh(p,'nom','Nom')+fh(p,'prenom','Prenom')+fh(p,'ddn','DDN','JJ/MM/AAAA')+fh(p,'ipp','IPP')+fh(p,'chambre','Chambre')+fh(p,'chirurgien','Chirurgien')+fh(p,'motif','Chirurgie / Motif','PTH, colectomie...')+'</div>'
 
-  +'<div class="mb12"><label class="sl">Statut</label><div class="sr">'+sbtn(p,'stable','Stable','a-s')+sbtn(p,'surveillance','Surv.','a-w')+sbtn(p,'critique','Critique','a-c')+'</div></div>'
+  +'<div class="grid2">'+fh(p,'nom','Nom')+fh(p,'prenom','Prenom')+fh(p,'ddn','DDN','JJ/MM/AAAA')+fh(p,'ipp','IPP')+fh(p,'chambre','Chambre')+fh(p,'chirurgien','Chirurgien')+fh(p,'motif','Motif','Pneumopathie...')+'</div>'
 
-  +'<div class="mb12"><label class="sl">Allergies</label><input class="allergy-box" type="text" value="'+esc(p.allergies||'')+'" placeholder="Aucune allergie connue" onchange="uf(\''+p.id+'\',\'allergies\',this.value)"></div>'
+  +'<div class="mb12"><label class="sl">Statut</label><div class="sr">'+sBtn(p,'stable','Stable','a-s')+sBtn(p,'surveillance','Surv.','a-w')+sBtn(p,'critique','Critique','a-c')+'</div></div>'
+
+  +'<div class="mb12"><label class="sl">Allergies</label><input class="allergy-box" value="'+esc(p.allergies||'')+'" placeholder="Aucune allergie connue" oninput="uf(\''+p.id+'\',\'allergies\',this.value)"></div>'
 
   +'<div class="mb12"><label class="sl">Antecedents</label>'+ah+'</div>'
 
-  +'<div class="mb12"><label class="sl">Traitement</label><textarea class="fi" rows="3" placeholder="Metformine 1000mg, Ramipril 5mg..." onchange="uf(\''+p.id+'\',\'traitement\',this.value)">'+esc(p.traitement||'')+'</textarea></div>'
+  +'<div class="mb12"><label class="sl">Traitement</label><textarea class="fi" rows="3" placeholder="Metformine 1000 x2/j, Bisoprolol 5mg..." oninput="uf(\''+p.id+'\',\'traitement\',this.value)">'+esc(p.traitement||'')+'</textarea></div>'
 
   +'<div class="mb12"><label class="sl">Biologie</label>'+bt+bh+'</div>'
 
-  +'<div class="mb12"><label class="sl">Notes</label><textarea class="fi" rows="3" placeholder="TODO, remarques..." onchange="uf(\''+p.id+'\',\'notes\',this.value)">'+esc(p.notes||'')+'</textarea></div>'
+  +'<div class="mb12"><label class="sl">Notes</label><textarea class="fi" rows="3" placeholder="TODO, remarques..." oninput="uf(\''+p.id+'\',\'notes\',this.value)">'+esc(p.notes||'')+'</textarea></div>'
 
   +'<div class="btn-row"><button class="btn-export" onclick="exportMsg(\''+p.id+'\')">📋 Copier fiche</button></div>'
 
@@ -261,157 +240,69 @@ function rc(p){
   +'</div></div>';
 }
 
-function fh(p,k,l,ph){return '<div class="fld"><label>'+l+'</label><input value="'+esc(p[k]||'')+'"'+(ph?' placeholder="'+ph+'"':'')+' onchange="uf(\''+p.id+'\',\''+k+'\',this.value)"></div>'}
-function sbtn(p,v,l,c){return '<button class="sb '+(p.status===v?c:'')+'" onclick="uf(\''+p.id+'\',\'status\',\''+v+'\')">'+l+'</button>'}
+function fh(p,k,l,ph){return '<div class="fld"><label>'+l+'</label><input value="'+esc(p[k]||'')+'"'+(ph?' placeholder="'+ph+'"':'')+' oninput="uf(\''+p.id+'\',\''+k+'\',this.value)"></div>'}
+function sBtn(p,v,l,c){return '<button class="sb '+(p.status===v?c:'')+'" onclick="uf(\''+p.id+'\',\'status\',\''+v+'\')">'+l+'</button>'}
 
 // === ACTIONS ===
 function tog(id){exId=exId===id?null:id;cfmId=null;render()}
-async function addP(d={}){const p={id:Date.now()+''+Math.random().toString(36).slice(2,6),nom:'',prenom:'',ddn:'',ipp:'',chambre:'',sexe:'',chirurgien:'',motif:'',status:'stable',atcdList:[],atcdCustom:[],bilans:[],traitement:'',allergies:'',notes:'',createdAt:new Date().toISOString(),...d};P.unshift(p);await sav(p);exId=p.id;render();tw('Patient ajoute')}
-async function uf(id,f,v){const p=P.find(x=>x.id===id);if(!p)return;p[f]=v;await sav(p);if(['status','nom','prenom','chambre','chirurgien','motif'].includes(f))render()}
+
+async function addP(d={}){
+  const p={id:Date.now()+''+Math.random().toString(36).slice(2,6),nom:'',prenom:'',ddn:'',ipp:'',chambre:'',sexe:'',chirurgien:'',motif:'',status:'stable',atcdList:[],atcdCustom:[],allergies:'',traitement:'',bilans:[],notes:'',createdAt:new Date().toISOString(),...d};
+  P.unshift(p);await sav(p);exId=p.id;render();tw('Patient ajoute');
+}
+
+function uf(id,f,v){
+  const p=P.find(x=>x.id===id);if(!p)return;p[f]=v;debouncedSav(p);
+  if(['status','nom','prenom','chambre','chirurgien','motif'].includes(f))render();
+}
 
 // ATCD
-async function toggleAtcd(id,a){const p=P.find(x=>x.id===id);if(!p)return;if(!p.atcdList)p.atcdList=[];const i=p.atcdList.indexOf(a);if(i>=0)p.atcdList.splice(i,1);else p.atcdList.push(a);await sav(p);render()}
-async function addCA(id){const inp=document.getElementById('atcdIn-'+id);const v=inp.value.trim();if(!v)return;const p=P.find(x=>x.id===id);if(!p)return;if(!p.atcdCustom)p.atcdCustom=[];if(!p.atcdCustom.includes(v)){p.atcdCustom.push(v);await sav(p);render()}inp.value=''}
-async function removeCA(id,a){const p=P.find(x=>x.id===id);if(!p||!p.atcdCustom)return;p.atcdCustom=p.atcdCustom.filter(x=>x!==a);await sav(p);render()}
+async function toggleAtcd(id,a){
+  const p=P.find(x=>x.id===id);if(!p)return;
+  const i=p.atcdList.indexOf(a);
+  if(i>=0)p.atcdList.splice(i,1);else p.atcdList.push(a);
+  await sav(p);render();
+}
+async function addCA(id){
+  const inp=document.getElementById('ai-'+id);const v=inp.value.trim();if(!v)return;
+  const p=P.find(x=>x.id===id);if(!p)return;
+  if(!p.atcdCustom.includes(v)){p.atcdCustom.push(v);await sav(p);render()}
+  inp.value='';
+}
+async function removeCA(id,a){
+  const p=P.find(x=>x.id===id);if(!p)return;
+  p.atcdCustom=p.atcdCustom.filter(x=>x!==a);await sav(p);render();
+}
 
 // BILANS
-async function addBilan(id){const p=P.find(x=>x.id===id);if(!p)return;const d=prompt('Date du bilan (JJ/MM/AAAA):',todayFull());if(!d)return;p.bilans.unshift({date:d,bio:{}});activeBilan[id]=0;await sav(p);render()}
+async function addBilan(id){
+  const p=P.find(x=>x.id===id);if(!p)return;
+  const d=prompt('Date du bilan (JJ/MM/AAAA):',todayFull());if(!d)return;
+  p.bilans.unshift({date:d,bio:{}});activeBilan[id]=0;
+  await sav(p);render();
+}
 function switchB(id,i){activeBilan[id]=i;render()}
-async function delB(id,i){const p=P.find(x=>x.id===id);if(!p)return;p.bilans.splice(i,1);if(activeBilan[id]>=p.bilans.length)activeBilan[id]=Math.max(0,p.bilans.length-1);await sav(p);render()}
-async function editBD(id,i){const p=P.find(x=>x.id===id);if(!p||!p.bilans[i])return;const d=prompt('Nouvelle date:',p.bilans[i].date);if(!d)return;p.bilans[i].date=d;await sav(p);render()}
-async function uBio(id,bi,k,v){const p=P.find(x=>x.id===id);if(!p||!p.bilans[bi])return;if(!p.bilans[bi].bio)p.bilans[bi].bio={};p.bilans[bi].bio[k]=v;await sav(p)}
+async function delB(id,i){
+  const p=P.find(x=>x.id===id);if(!p)return;
+  p.bilans.splice(i,1);
+  if((activeBilan[id]||0)>=p.bilans.length)activeBilan[id]=Math.max(0,p.bilans.length-1);
+  await sav(p);render();
+}
+async function editBD(id,i){
+  const p=P.find(x=>x.id===id);if(!p||!p.bilans[i])return;
+  const d=prompt('Nouvelle date:',p.bilans[i].date);if(!d)return;
+  p.bilans[i].date=d;await sav(p);render();
+}
+function uBio(id,bi,k,v){
+  const p=P.find(x=>x.id===id);if(!p||!p.bilans[bi])return;
+  if(!p.bilans[bi].bio)p.bilans[bi].bio={};
+  p.bilans[bi].bio[k]=v;debouncedSav(p);
+}
 
 // DELETE
 function askDel(id){cfmId=id;render()}
 function cancelDel(){cfmId=null;render()}
 async function cfmDel(id){P=P.filter(p=>p.id!==id);await del(id);exId=null;cfmId=null;render();tw('Patient supprime')}
-
-// === CONSULT ANESTHESIE SCAN ===
-function startConsultScan(){
-  consultStep=1;consultTexts=[];
-  showConsultModal();
-}
-
-function showConsultModal(){
-  const m=document.getElementById('consultModal');
-  const step=document.getElementById('modalStep');
-  const icon=document.getElementById('modalIcon');
-  const title=document.getElementById('modalTitle');
-  const desc=document.getElementById('modalDesc');
-  if(consultStep===1){
-    step.textContent='ETAPE 1/2';icon.textContent='📄';
-    title.textContent='Page 1 de la consultation';
-    desc.textContent='Prends en photo la premiere page (identite, chirurgien, intervention, ATCD)';
-  }else if(consultStep===2){
-    step.textContent='ETAPE 2/2';icon.textContent='📄';
-    title.textContent='Page 2 de la consultation';
-    desc.textContent='Prends en photo la deuxieme page (traitement, allergies, examen)';
-  }
-  m.classList.add('active');
-}
-
-function skipConsultPage(){
-  if(consultStep===1){consultTexts.push('');consultStep=2;showConsultModal()}
-  else{closeConsultModal();processConsultTexts()}
-}
-
-function closeConsultModal(){document.getElementById('consultModal').classList.remove('active')}
-
-async function handleConsultPhoto(e){
-  const file=e.target.files?.[0];if(!file)return;
-  closeConsultModal();
-  const banner=document.getElementById('ocrB'),bar=document.getElementById('ocrP'),txt=document.getElementById('ocrText');
-  txt.textContent='📄 Lecture page '+consultStep+'/2...';
-  banner.classList.add('active');bar.style.width='0%';
-
-  try{
-    const r=await Tesseract.recognize(file,'fra',{logger:m=>{if(m.status==='recognizing text')bar.style.width=Math.round((m.progress||0)*100)+'%'}});
-    consultTexts.push(r.data.text);
-  }catch(err){
-    console.error(err);consultTexts.push('');
-    tw('OCR page '+consultStep+' echoue');
-  }
-  banner.classList.remove('active');
-  e.target.value='';
-
-  if(consultStep===1){consultStep=2;showConsultModal()}
-  else{processConsultTexts()}
-}
-
-async function processConsultTexts(){
-  const combined=consultTexts.join('\n\n');
-  const data=parseConsult(combined);
-  await addP(data);
-  tw('Consultation scannee');
-}
-
-function parseConsult(text){
-  const d={nom:'',prenom:'',ddn:'',ipp:'',chambre:'',chirurgien:'',motif:'',allergies:'',traitement:'',atcdCustom:[]};
-  const ft=text.replace(/\n+/g,' ').replace(/\s+/g,' ');
-  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
-  let m;
-
-  // Nom prenom
-  m=ft.match(/(?:nom|patient[e]?)\s*[:\-]?\s*([A-ZÀ-Ü]{2,})/i);
-  if(m)d.nom=m[1];
-  m=ft.match(/(?:pr[eé]nom)\s*[:\-]?\s*([A-ZÀ-Ü][a-zà-ü]+)/i);
-  if(m)d.prenom=m[1];
-  if(!d.nom){m=ft.match(/\b([A-Z]{2,})\s+([A-Z][a-z]+)/);if(m){d.nom=m[1];d.prenom=m[2]}}
-
-  // DDN / Age
-  m=ft.match(/(?:n[eé]e?\s*(?:le)?|naissance|ddn)\s*[:\-]?\s*(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4})/i)||ft.match(/(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})/);
-  if(m)d.ddn=m[1].replace(/[.\-]/g,'/');
-
-  // IPP
-  m=ft.match(/(?:ipp|ip|ident)\s*[:\-]?\s*(\d{5,15})/i);
-  if(m)d.ipp=m[1];
-
-  // Chambre
-  m=ft.match(/(?:ch(?:ambre)?|lit)\s*[:\-]?\s*([A-Z]?\d{1,4}[A-Z]?)/i);
-  if(m)d.chambre=m[1];
-
-  // Chirurgien
-  m=ft.match(/(?:chirurgien|op[eé]rateur|praticien|dr)\s*[:\-.]?\s*([A-ZÀ-Ü][a-zà-ü]+(?:\s[A-ZÀ-Ü][a-zà-ü]+)?)/i);
-  if(m)d.chirurgien=m[1].trim();
-
-  // Chirurgie / intervention
-  m=ft.match(/(?:intervention|chirurgie|op[eé]ration|acte|geste)\s*(?:pr[eé]vue?)?\s*[:\-]?\s*(.{3,60}?)(?:\.|$|chirurgien|anesth)/i);
-  if(m)d.motif=m[1].trim();
-
-  // Allergies
-  m=ft.match(/(?:allergie[s]?)\s*[:\-]?\s*(.{2,80}?)(?:\.|traitement|ant[eé]c|$)/i);
-  if(m){const a=m[1].trim();if(!/\b(?:aucune|nkda|ras|n[eé]ant|non|pas)\b/i.test(a))d.allergies=a}
-
-  // Traitement
-  m=ft.match(/(?:traitement[s]?|ttt|th[eé]rapeutique)\s*(?:en cours|habituel|actuel)?\s*[:\-]?\s*(.{5,300}?)(?:allergie|ant[eé]c[eé]dent|examen|auscultation|conclusion|$)/i);
-  if(m)d.traitement=m[1].trim().replace(/\s+/g,' ');
-
-  // ATCD - try to extract from text
-  m=ft.match(/(?:ant[eé]c[eé]dent[s]?|atcd)\s*(?:m[eé]dicaux|chirurgicaux|m[eé]d|chir)?\s*[:\-]?\s*(.{5,300}?)(?:traitement|ttt|allergie|examen|$)/i);
-  if(m){
-    const atcdText=m[1].trim();
-    // Match known ATCD
-    const atcdFound=[];
-    ATCD_LIST.forEach(a=>{
-      const re=new RegExp(a.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');
-      if(re.test(atcdText))atcdFound.push(a);
-    });
-    d.atcdList=atcdFound;
-
-    // Remaining text as custom ATCD
-    let remaining=atcdText;
-    atcdFound.forEach(a=>{remaining=remaining.replace(new RegExp(a,'gi'),'')});
-    const custom=remaining.split(/[,;\-•·]/).map(s=>s.trim()).filter(s=>s.length>2&&s.length<50);
-    if(custom.length)d.atcdCustom=custom;
-  }
-
-  return d;
-}
-
-// === LABEL OCR ===
-function triggerCam(){document.getElementById('fileInput').click()}
-async function handlePhoto(e){const file=e.target.files?.[0];if(!file)return;const b=document.getElementById('ocrB'),bar=document.getElementById('ocrP'),txt=document.getElementById('ocrText');txt.textContent='📷 Lecture etiquette...';b.classList.add('active');bar.style.width='0%';try{const r=await Tesseract.recognize(file,'fra',{logger:m=>{if(m.status==='recognizing text')bar.style.width=Math.round((m.progress||0)*100)+'%'}});b.classList.remove('active');await addP(parseL(r.data.text))}catch(err){b.classList.remove('active');await addP();tw('OCR echoue')}e.target.value=''}
-function parseL(t){const d={nom:'',prenom:'',ddn:'',ipp:'',chambre:'',sexe:''},ft=t.split('\n').join(' ');let m;m=ft.match(/(?:n[eé]e?|naissance|ddn)\s*[:.—-]?\s*(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4})/i)||ft.match(/(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})/);if(m)d.ddn=m[1].replace(/[.\-]/g,'/');m=ft.match(/(?:ipp|id|n°)\s*[:.—-]?\s*(\d{5,15})/i)||ft.match(/\b(\d{7,12})\b/);if(m)d.ipp=m[1];m=ft.match(/(?:ch(?:ambre)?|lit|box)\s*[:.—-]?\s*([A-Z]?\d{1,4}[A-Z]?)/i);if(m)d.chambre=m[1];m=ft.match(/\b([A-Z]{2,})\s+([A-Z][a-z]+)/);if(m){d.nom=m[1];d.prenom=m[2]}return d}
 
 // === EXPORT MESSAGE ===
 function exportMsg(id){
@@ -423,15 +314,14 @@ function exportMsg(id){
   if(p.ipp)l.push('IPP: '+p.ipp);
   if(p.chambre)l.push('Chambre: '+p.chambre);
   if(p.chirurgien)l.push('Chirurgien: '+p.chirurgien);
-  if(p.motif)l.push('Chirurgie: '+p.motif);
+  if(p.motif)l.push('Motif: '+p.motif);
   if(p.status)l.push('Statut: '+p.status.charAt(0).toUpperCase()+p.status.slice(1));
-
   if(p.allergies)l.push('\n⚠️ Allergies: '+p.allergies);
 
   const allA=[...(p.atcdList||[]),...(p.atcdCustom||[])];
   if(allA.length)l.push('\nATCD: '+allA.join(', '));
 
-  if(p.traitement)l.push('\nTraitement: '+p.traitement);
+  if(p.traitement)l.push('\nTraitement:\n'+p.traitement);
 
   if(p.bilans&&p.bilans.length){
     p.bilans.forEach(b=>{
@@ -439,12 +329,134 @@ function exportMsg(id){
       if(vals.length)l.push('\nBio '+b.date+':\n'+vals.join(' | '));
     });
   }
+
   if(p.notes)l.push('\nNotes: '+p.notes);
 
   const msg=l.join('\n');
-  navigator.clipboard.writeText(msg).then(()=>{tw('Fiche copiee !')}).catch(()=>{
+  navigator.clipboard.writeText(msg).then(()=>tw('Fiche copiee !')).catch(()=>{
     const ta=document.createElement('textarea');ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);tw('Fiche copiee !');
   });
+}
+
+// === OCR ETIQUETTE ===
+function triggerCam(){document.getElementById('fileInput').click()}
+async function handlePhoto(e){
+  const file=e.target.files?.[0];if(!file)return;
+  showOCR('📷 Lecture etiquette...');
+  try{
+    const r=await Tesseract.recognize(file,'fra',{logger:m=>{if(m.status==='recognizing text')setOCRProg(m.progress)}});
+    hideOCR();await addP(parseLabel(r.data.text));
+  }catch(err){hideOCR();await addP();tw('OCR echoue')}
+  e.target.value='';
+}
+
+// === OCR CONSULT ANESTHESIE (2 pages) ===
+function startConsult(){
+  consultPages=[];
+  tw('📄 Photo page 1/2');
+  document.getElementById('consultInput').click();
+}
+
+async function handleConsultPhoto(e){
+  const file=e.target.files?.[0];if(!file)return;
+  const pageNum=consultPages.length+1;
+  showOCR('📄 Lecture page '+pageNum+'/2...');
+
+  try{
+    const r=await Tesseract.recognize(file,'fra',{logger:m=>{if(m.status==='recognizing text')setOCRProg(m.progress)}});
+    consultPages.push(r.data.text);
+    hideOCR();
+
+    if(consultPages.length<2){
+      e.target.value='';
+      tw('📄 Photo page 2/2');
+      setTimeout(()=>document.getElementById('consultInput').click(),500);
+    }else{
+      e.target.value='';
+      const fullText=consultPages.join('\n\n');
+      const data=parseConsult(fullText);
+      await addP(data);
+      consultPages=[];
+    }
+  }catch(err){
+    hideOCR();consultPages=[];
+    await addP();tw('OCR echoue');
+    e.target.value='';
+  }
+}
+
+function showOCR(txt){const b=document.getElementById('ocrB');document.getElementById('ocrText').textContent=txt;document.getElementById('ocrP').style.width='0%';b.classList.add('active')}
+function hideOCR(){document.getElementById('ocrB').classList.remove('active')}
+function setOCRProg(v){document.getElementById('ocrP').style.width=Math.round((v||0)*100)+'%'}
+
+// === PARSERS ===
+function parseLabel(t){
+  const ft=t.split('\n').map(l=>l.trim()).filter(Boolean).join(' ');
+  const d={nom:'',prenom:'',ddn:'',ipp:'',chambre:'',sexe:''};let m;
+  m=ft.match(/(?:n[eé]e?|naissance|ddn)\s*[:.—-]?\s*(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4})/i)||ft.match(/(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})/);
+  if(m)d.ddn=m[1].replace(/[.\-]/g,'/');
+  m=ft.match(/(?:ipp|id|n°)\s*[:.—-]?\s*(\d{5,15})/i)||ft.match(/\b(\d{7,12})\b/);
+  if(m)d.ipp=m[1];
+  m=ft.match(/(?:ch(?:ambre)?|lit|box)\s*[:.—-]?\s*([A-Z]?\d{1,4}[A-Z]?)/i);
+  if(m)d.chambre=m[1];
+  m=ft.match(/\b([A-Z]{2,})\s+([A-Z][a-z]+)/);
+  if(m){d.nom=m[1];d.prenom=m[2]}
+  return d;
+}
+
+function parseConsult(t){
+  const ft=t.split('\n').map(l=>l.trim()).filter(Boolean).join(' ');
+  const lines=t.split('\n').map(l=>l.trim()).filter(Boolean);
+  const d={nom:'',prenom:'',ddn:'',ipp:'',chambre:'',chirurgien:'',motif:'',atcdCustom:[],allergies:'',traitement:''};
+  let m;
+
+  // Nom prenom
+  m=ft.match(/(?:nom|patient)\s*[:.—-]?\s*([A-Z\u00C0-\u00DC]{2,})\s+([A-Z\u00C0-\u00DC][a-z\u00E0-\u00FC]+)/i);
+  if(m){d.nom=m[1];d.prenom=m[2]}
+  else{m=ft.match(/\b([A-Z]{2,})\s+([A-Z][a-z]+)/);if(m){d.nom=m[1];d.prenom=m[2]}}
+
+  // DDN / Age
+  m=ft.match(/(?:n[eé]e?|naissance|ddn|dn)\s*[:.—-]?\s*(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4})/i)||ft.match(/(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})/);
+  if(m)d.ddn=m[1].replace(/[.\-]/g,'/');
+  m=ft.match(/(\d{1,3})\s*ans/i);
+  if(m&&!d.ddn)d.ddn=m[1]+' ans';
+
+  // IPP
+  m=ft.match(/(?:ipp|id|n°)\s*[:.—-]?\s*(\d{5,15})/i);
+  if(m)d.ipp=m[1];
+
+  // Chirurgien
+  m=ft.match(/(?:chirurgien|chir(?:urgie)?|op[eé]rateur|dr)\s*[:.—-]?\s*(?:dr\.?\s*)?([A-Z\u00C0-\u00DC][A-Za-z\u00E0-\u00FC\s\-]{2,25})/i);
+  if(m)d.chirurgien=m[1].trim();
+
+  // Chirurgie / intervention
+  m=ft.match(/(?:intervention|chirurgie|op[eé]ration|geste|indication)\s*[:.—-]?\s*(.{3,60}?)(?:\.|$)/i);
+  if(m)d.motif=m[1].trim();
+
+  // Allergies
+  m=ft.match(/(?:allergie[s]?)\s*[:.—-]?\s*(.{2,80}?)(?:\n|\.|\bant[eé]c|$)/i);
+  if(m){const a=m[1].trim();if(!/n[eé]ant|aucun|ras|pas |0/i.test(a))d.allergies=a}
+
+  // ATCD
+  m=ft.match(/(?:ant[eé]c[eé]dents?|atcd|atcds)\s*[:.—-]?\s*([\s\S]{5,300}?)(?:traitement|allergie|intervention|chirurgie|examen|bilan|$)/i);
+  if(m){
+    const raw=m[1].replace(/[-•·–]/g,',').split(/[,\n;]+/).map(s=>s.trim()).filter(s=>s.length>1&&s.length<60);
+    const known=ATCD_LIST.map(a=>a.toLowerCase());
+    const matched=[];const custom=[];
+    raw.forEach(r=>{
+      const rl=r.toLowerCase();
+      const found=ATCD_LIST.find((a,i)=>rl.includes(known[i]));
+      if(found){if(!matched.includes(found))matched.push(found)}
+      else{custom.push(r)}
+    });
+    d.atcdList=matched;d.atcdCustom=custom;
+  }
+
+  // Traitement
+  m=ft.match(/(?:traitement|ttt|th[eé]rapeutique)\s*[:.—-]?\s*([\s\S]{5,500}?)(?:allergie|ant[eé]c|examen|bilan|intervention|$)/i);
+  if(m)d.traitement=m[1].replace(/[-•·–]/g,'\n').split(/\n+/).map(s=>s.trim()).filter(Boolean).join('\n');
+
+  return d;
 }
 
 // === BACKUP ===
