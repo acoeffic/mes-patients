@@ -19,10 +19,11 @@ input,textarea{-webkit-appearance:none}
 .header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .header h1{font-size:22px;font-weight:800;color:#fff}
 .count{font-size:13px;color:rgba(255,255,255,.7)}
-.header-actions{display:flex;gap:8px}
+.header-actions{display:flex;gap:6px}
 .btn-icon{width:42px;height:42px;border-radius:12px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .btn-icon:active{transform:scale(.92)}
 .btn-cam{background:rgba(255,255,255,.2)}
+.btn-doc{background:rgba(255,255,255,.35)}
 .btn-add{background:#fff;color:#228be6;font-size:26px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .search-box{position:relative}
 .search-box input{width:100%;padding:10px 12px 10px 36px;border-radius:10px;border:none;background:rgba(255,255,255,.2);color:#fff;font-size:14px;outline:none}
@@ -33,6 +34,20 @@ input,textarea{-webkit-appearance:none}
 .ocr-banner.active{display:block}
 .ocr-progress{height:4px;background:#d0ebff;border-radius:2px;margin-top:8px;overflow:hidden}
 .ocr-progress-bar{height:100%;background:#228be6;border-radius:2px;transition:width .3s;width:0}
+
+/* Modal overlay */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.active{display:flex}
+.modal{background:#fff;border-radius:20px;padding:24px;max-width:340px;width:100%;text-align:center}
+.modal h3{font-size:18px;margin-bottom:8px}
+.modal p{font-size:14px;color:#868e96;margin-bottom:20px;line-height:1.5}
+.modal-btns{display:flex;gap:8px}
+.modal-btn{flex:1;padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:600;cursor:pointer}
+.modal-btn-primary{background:#228be6;color:#fff}
+.modal-btn-secondary{background:#f1f3f5;color:#495057}
+.modal-btn-skip{background:#fff;color:#868e96;border:1px solid #dee2e6}
+.modal-step{font-size:12px;color:#228be6;font-weight:600;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px}
+.modal-icon{font-size:40px;margin-bottom:12px}
 
 .patient-list{padding:12px 16px 120px}
 .empty-state{text-align:center;padding:60px 20px}
@@ -95,9 +110,12 @@ input,textarea{-webkit-appearance:none}
 .bc{flex:1;padding:10px;border-radius:10px;border:1px solid #e9ecef;background:#fff;font-size:14px;cursor:pointer}
 .bcd{flex:1;padding:10px;border-radius:10px;border:none;background:#e03131;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
 
+.allergy-box{background:#fff5f5;border:1px solid #ffc9c9;border-radius:8px;padding:8px 10px;font-size:14px;color:#e03131;width:100%;outline:none;font-family:inherit}
+.allergy-box:focus{border-color:#e03131}
+
 .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#212529;color:#fff;padding:10px 20px;border-radius:10px;font-size:14px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%;text-align:center}
 .toast.show{opacity:1}
-#fileInput,#importInput{display:none}
+#fileInput,#consultInput,#importInput{display:none}
 .tools{display:flex;gap:8px;margin:12px 16px 0}
 .bt{flex:1;padding:8px;border-radius:8px;border:1px solid #dee2e6;background:#fff;font-size:12px;font-weight:500;color:#495057;cursor:pointer;text-align:center}
 </style>
@@ -107,7 +125,8 @@ input,textarea{-webkit-appearance:none}
 <div class="header-row">
 <div><h1>Mes Patients</h1><span class="count" id="cnt">0 patient</span></div>
 <div class="header-actions">
-<button class="btn-icon btn-cam" onclick="triggerCam()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="3"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.5"/></svg></button>
+<button class="btn-icon btn-cam" onclick="triggerCam()" title="Etiquette"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="3"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.5"/></svg></button>
+<button class="btn-icon btn-doc" onclick="startConsultScan()" title="Consult anesth" style="font-size:18px">📄</button>
 <button class="btn-icon btn-add" onclick="addP()">+</button>
 </div></div>
 <div class="search-box">
@@ -115,8 +134,23 @@ input,textarea{-webkit-appearance:none}
 <input type="text" id="si" placeholder="Rechercher un patient..." oninput="render()">
 </div></div>
 
-<div class="ocr-banner" id="ocrB">Lecture de l'etiquette...<div class="ocr-progress"><div class="ocr-progress-bar" id="ocrP"></div></div></div>
+<div class="ocr-banner" id="ocrB"><span id="ocrText">Lecture en cours...</span><div class="ocr-progress"><div class="ocr-progress-bar" id="ocrP"></div></div></div>
 <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handlePhoto(event)">
+<input type="file" id="consultInput" accept="image/*" capture="environment" onchange="handleConsultPhoto(event)">
+
+<!-- Modal for consult scan flow -->
+<div class="modal-overlay" id="consultModal">
+<div class="modal">
+<div class="modal-step" id="modalStep">ETAPE 1/2</div>
+<div class="modal-icon" id="modalIcon">📄</div>
+<h3 id="modalTitle">Page 1 de la consultation</h3>
+<p id="modalDesc">Prends en photo la premiere page de la consultation d'anesthesie</p>
+<div class="modal-btns">
+<button class="modal-btn modal-btn-skip" onclick="skipConsultPage()">Passer</button>
+<button class="modal-btn modal-btn-primary" onclick="document.getElementById('consultInput').click()">📷 Photo</button>
+</div>
+</div>
+</div>
 
 <div class="tools">
 <button class="bt" onclick="exportAll()">Sauvegarder</button>
@@ -130,7 +164,7 @@ input,textarea{-webkit-appearance:none}
 
 <script>
 // === DB ===
-const DN='PatientsDB',DV=2,ST='patients';
+const DN='PatientsDB',DV=3,ST='patients';
 function odb(){return new Promise((s,j)=>{const r=indexedDB.open(DN,DV);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains(ST))d.createObjectStore(ST,{keyPath:'id'})};r.onsuccess=()=>s(r.result);r.onerror=()=>j(r.error)})}
 async function getAll(){const d=await odb();return new Promise((s,j)=>{const t=d.transaction(ST,'readonly'),r=t.objectStore(ST).getAll();r.onsuccess=()=>s(r.result||[]);r.onerror=()=>j(r.error)})}
 async function sav(p){const d=await odb();return new Promise((s,j)=>{const t=d.transaction(ST,'readwrite');t.objectStore(ST).put(p);t.oncomplete=()=>s();t.onerror=()=>j(t.error)})}
@@ -138,6 +172,7 @@ async function del(id){const d=await odb();return new Promise((s,j)=>{const t=d.
 
 // === STATE ===
 let P=[],exId=null,cfmId=null,activeBilan={};
+let consultStep=0,consultTexts=[];
 
 const BF=[
   {k:'hb',l:'Hb',u:'g/dL'},{k:'plq',l:'Plq',u:'G/L'},
@@ -154,18 +189,17 @@ const ATCD_LIST=[
   'VIH','Hepatite','Pacemaker','Valvulopathie'
 ];
 
-function todayStr(){const d=new Date();return (d.getDate()+'').padStart(2,'0')+'/'+(d.getMonth()+1+'').padStart(2,'0')}
 function todayFull(){const d=new Date();return (d.getDate()+'').padStart(2,'0')+'/'+(d.getMonth()+1+'').padStart(2,'0')+'/'+d.getFullYear()}
 
 // === INIT ===
 async function init(){P=await getAll();
   P.forEach(p=>{
-    if(p.bio && !Array.isArray(p.bilans)){
-      p.bilans=[{date:todayFull(),bio:p.bio}];delete p.bio;
-    }
+    if(p.bio&&!Array.isArray(p.bilans)){p.bilans=[{date:todayFull(),bio:p.bio}];delete p.bio}
     if(!p.bilans)p.bilans=[];
     if(!p.atcdList)p.atcdList=[];
     if(!p.atcdCustom)p.atcdCustom=[];
+    if(!p.traitement)p.traitement='';
+    if(!p.allergies)p.allergies='';
   });
   render();
 }
@@ -173,12 +207,7 @@ init();
 
 // === HELPERS ===
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
-function getActiveBilanIdx(p){
-  if(!p.bilans||!p.bilans.length)return -1;
-  const idx=activeBilan[p.id];
-  if(idx!==undefined && idx<p.bilans.length)return idx;
-  return 0;
-}
+function getABI(p){if(!p.bilans||!p.bilans.length)return -1;const i=activeBilan[p.id];return(i!==undefined&&i<p.bilans.length)?i:0}
 
 // === RENDER ===
 function render(){
@@ -187,49 +216,42 @@ function render(){
   const o={critique:0,surveillance:1,stable:2};f.sort((a,b)=>(o[a.status]??3)-(o[b.status]??3));
   document.getElementById('cnt').textContent=P.length+' patient'+(P.length!==1?'s':'');
   const el=document.getElementById('pl');
-  if(!f.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏥</div><div class="empty-title">'+(q?'Aucun resultat':'Aucun patient')+'</div><div class="empty-sub">'+(q?'Essaie un autre terme':'Appuie sur + ou camera')+'</div></div>';return}
+  if(!f.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏥</div><div class="empty-title">'+(q?'Aucun resultat':'Aucun patient')+'</div><div class="empty-sub">'+(q?'Essaie un autre terme':'Appuie sur + ou 📄 pour scanner une consult')+'</div></div>';return}
   el.innerHTML=f.map(rc).join('');
 }
 
 function rc(p){
   const op=exId===p.id,cf=cfmId===p.id;
   const dt=[p.chambre&&('Ch.'+p.chambre),p.chirurgien&&('Dr '+p.chirurgien),p.motif].filter(Boolean).join(' · ')||'Aucun detail';
-  const bilanIdx=getActiveBilanIdx(p);
-  const currentBilan=bilanIdx>=0?p.bilans[bilanIdx]:null;
+  const bi=getABI(p),cb=bi>=0?p.bilans[bi]:null;
 
-  let atcdHTML='<div class="atcd-tags">';
-  ATCD_LIST.forEach(a=>{
-    const on=p.atcdList&&p.atcdList.includes(a);
-    atcdHTML+='<span class="atcd-tag'+(on?' on':'')+'" onclick="toggleAtcd(\''+p.id+'\',\''+esc(a)+'\')">'+esc(a)+'</span>';
-  });
-  if(p.atcdCustom)p.atcdCustom.forEach(a=>{
-    atcdHTML+='<span class="atcd-tag on" onclick="removeCustomAtcd(\''+p.id+'\',\''+esc(a)+'\')">'+esc(a)+' ✕</span>';
-  });
-  atcdHTML+='</div>';
-  atcdHTML+='<div class="atcd-custom-row"><input class="atcd-custom-input" id="atcdIn-'+p.id+'" placeholder="Autre ATCD..." onkeydown="if(event.key===\'Enter\')addCustomAtcd(\''+p.id+'\')"><button class="atcd-custom-btn" onclick="addCustomAtcd(\''+p.id+'\')">+</button></div>';
+  // ATCD
+  let ah='<div class="atcd-tags">';
+  ATCD_LIST.forEach(a=>{const on=p.atcdList&&p.atcdList.includes(a);ah+='<span class="atcd-tag'+(on?' on':'')+'" onclick="toggleAtcd(\''+p.id+'\',\''+esc(a)+'\')">'+esc(a)+'</span>'});
+  if(p.atcdCustom)p.atcdCustom.forEach(a=>{ah+='<span class="atcd-tag on" onclick="removeCA(\''+p.id+'\',\''+esc(a)+'\')">'+esc(a)+' ✕</span>'});
+  ah+='</div><div class="atcd-custom-row"><input class="atcd-custom-input" id="atcdIn-'+p.id+'" placeholder="Autre ATCD..." onkeydown="if(event.key===\'Enter\')addCA(\''+p.id+'\')"><button class="atcd-custom-btn" onclick="addCA(\''+p.id+'\')">+</button></div>';
 
-  let bilanTabsHTML='<div class="bio-tabs">';
-  bilanTabsHTML+='<div class="bio-tab bio-tab-add" onclick="addBilan(\''+p.id+'\')">+ Bilan</div>';
-  if(p.bilans)p.bilans.forEach((b,i)=>{
-    bilanTabsHTML+='<div class="bio-tab'+(i===bilanIdx?' active':'')+'" onclick="switchBilan(\''+p.id+'\','+i+')" ondblclick="event.stopPropagation();editBilanDate(\''+p.id+'\','+i+')">'+esc(b.date)+(p.bilans.length>1?'<span class="bio-tab-del" onclick="event.stopPropagation();delBilan(\''+p.id+'\','+i+')"> ✕</span>':'')+'</div>';
-  });
-  bilanTabsHTML+='</div>';
+  // Bilan tabs
+  let bt='<div class="bio-tabs"><div class="bio-tab bio-tab-add" onclick="addBilan(\''+p.id+'\')">+ Bilan</div>';
+  if(p.bilans)p.bilans.forEach((b,i)=>{bt+='<div class="bio-tab'+(i===bi?' active':'')+'" onclick="switchB(\''+p.id+'\','+i+')" ondblclick="event.stopPropagation();editBD(\''+p.id+'\','+i+')">'+esc(b.date)+(p.bilans.length>1?'<span class="bio-tab-del" onclick="event.stopPropagation();delB(\''+p.id+'\','+i+')"> ✕</span>':'')+'</div>'});
+  bt+='</div>';
 
-  let bioHTML='';
-  if(currentBilan){
-    bioHTML='<div class="bg">'+BF.map(f=>'<div class="bi"><span class="bl">'+f.l+'</span><input type="text" inputmode="decimal" value="'+esc((currentBilan.bio||{})[f.k]||'')+'" placeholder="—" onchange="updateBio(\''+p.id+'\','+bilanIdx+',\''+f.k+'\',this.value)">'+(f.u?'<span class="bu">'+f.u+'</span>':'')+'</div>').join('')+'</div>';
-  }else{
-    bioHTML='<div style="text-align:center;color:#868e96;font-size:13px;padding:12px">Appuie sur "+ Bilan" pour ajouter des resultats</div>';
-  }
+  let bh='';
+  if(cb){bh='<div class="bg">'+BF.map(f=>'<div class="bi"><span class="bl">'+f.l+'</span><input type="text" inputmode="decimal" value="'+esc((cb.bio||{})[f.k]||'')+'" placeholder="—" onchange="uBio(\''+p.id+'\','+bi+',\''+f.k+'\',this.value)">'+(f.u?'<span class="bu">'+f.u+'</span>':'')+'</div>').join('')+'</div>'}
+  else{bh='<div style="text-align:center;color:#868e96;font-size:13px;padding:12px">Appuie sur "+ Bilan"</div>'}
 
   return '<div class="card"><div class="card-header" onclick="tog(\''+p.id+'\')"><div class="dot dot-'+(p.status||'stable')+'"></div><div class="card-info"><div class="card-name">'+esc(p.nom||'—')+' '+esc(p.prenom||'')+'</div><div class="card-detail">'+esc(dt)+'</div></div><svg class="chev '+(op?'open':'')+'" width="20" height="20" viewBox="0 0 20 20"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div><div class="card-body '+(op?'open':'')+'">'
-  +'<div class="grid2">'+fh(p,'nom','Nom')+fh(p,'prenom','Prenom')+fh(p,'ddn','DDN','JJ/MM/AAAA')+fh(p,'ipp','IPP')+fh(p,'chambre','Chambre')+fh(p,'chirurgien','Chirurgien')+fh(p,'motif','Motif','Pneumopathie...')+'</div>'
+  +'<div class="grid2">'+fh(p,'nom','Nom')+fh(p,'prenom','Prenom')+fh(p,'ddn','DDN','JJ/MM/AAAA')+fh(p,'ipp','IPP')+fh(p,'chambre','Chambre')+fh(p,'chirurgien','Chirurgien')+fh(p,'motif','Chirurgie / Motif','PTH, colectomie...')+'</div>'
 
-  +'<div class="mb12"><label class="sl">Statut</label><div class="sr">'+sb(p,'stable','Stable','a-s')+sb(p,'surveillance','Surv.','a-w')+sb(p,'critique','Critique','a-c')+'</div></div>'
+  +'<div class="mb12"><label class="sl">Statut</label><div class="sr">'+sbtn(p,'stable','Stable','a-s')+sbtn(p,'surveillance','Surv.','a-w')+sbtn(p,'critique','Critique','a-c')+'</div></div>'
 
-  +'<div class="mb12"><label class="sl">Antecedents</label>'+atcdHTML+'</div>'
+  +'<div class="mb12"><label class="sl">Allergies</label><input class="allergy-box" type="text" value="'+esc(p.allergies||'')+'" placeholder="Aucune allergie connue" onchange="uf(\''+p.id+'\',\'allergies\',this.value)"></div>'
 
-  +'<div class="mb12"><label class="sl">Biologie</label>'+bilanTabsHTML+bioHTML+'</div>'
+  +'<div class="mb12"><label class="sl">Antecedents</label>'+ah+'</div>'
+
+  +'<div class="mb12"><label class="sl">Traitement</label><textarea class="fi" rows="3" placeholder="Metformine 1000mg, Ramipril 5mg..." onchange="uf(\''+p.id+'\',\'traitement\',this.value)">'+esc(p.traitement||'')+'</textarea></div>'
+
+  +'<div class="mb12"><label class="sl">Biologie</label>'+bt+bh+'</div>'
 
   +'<div class="mb12"><label class="sl">Notes</label><textarea class="fi" rows="3" placeholder="TODO, remarques..." onchange="uf(\''+p.id+'\',\'notes\',this.value)">'+esc(p.notes||'')+'</textarea></div>'
 
@@ -240,104 +262,190 @@ function rc(p){
 }
 
 function fh(p,k,l,ph){return '<div class="fld"><label>'+l+'</label><input value="'+esc(p[k]||'')+'"'+(ph?' placeholder="'+ph+'"':'')+' onchange="uf(\''+p.id+'\',\''+k+'\',this.value)"></div>'}
-function sb(p,v,l,c){return '<button class="sb '+(p.status===v?c:'')+'" onclick="uf(\''+p.id+'\',\'status\',\''+v+'\')">'+l+'</button>'}
+function sbtn(p,v,l,c){return '<button class="sb '+(p.status===v?c:'')+'" onclick="uf(\''+p.id+'\',\'status\',\''+v+'\')">'+l+'</button>'}
 
 // === ACTIONS ===
 function tog(id){exId=exId===id?null:id;cfmId=null;render()}
-async function addP(d={}){const p={id:Date.now()+''+Math.random().toString(36).slice(2,6),nom:'',prenom:'',ddn:'',ipp:'',chambre:'',sexe:'',chirurgien:'',motif:'',status:'stable',atcdList:[],atcdCustom:[],bilans:[],notes:'',createdAt:new Date().toISOString(),...d};P.unshift(p);await sav(p);exId=p.id;render();tw('Patient ajoute')}
+async function addP(d={}){const p={id:Date.now()+''+Math.random().toString(36).slice(2,6),nom:'',prenom:'',ddn:'',ipp:'',chambre:'',sexe:'',chirurgien:'',motif:'',status:'stable',atcdList:[],atcdCustom:[],bilans:[],traitement:'',allergies:'',notes:'',createdAt:new Date().toISOString(),...d};P.unshift(p);await sav(p);exId=p.id;render();tw('Patient ajoute')}
 async function uf(id,f,v){const p=P.find(x=>x.id===id);if(!p)return;p[f]=v;await sav(p);if(['status','nom','prenom','chambre','chirurgien','motif'].includes(f))render()}
 
 // ATCD
-async function toggleAtcd(id,a){
-  const p=P.find(x=>x.id===id);if(!p)return;
-  if(!p.atcdList)p.atcdList=[];
-  const i=p.atcdList.indexOf(a);
-  if(i>=0)p.atcdList.splice(i,1);else p.atcdList.push(a);
-  await sav(p);render();
-}
-async function addCustomAtcd(id){
-  const inp=document.getElementById('atcdIn-'+id);
-  const v=inp.value.trim();if(!v)return;
-  const p=P.find(x=>x.id===id);if(!p)return;
-  if(!p.atcdCustom)p.atcdCustom=[];
-  if(!p.atcdCustom.includes(v)){p.atcdCustom.push(v);await sav(p);render()}
-  inp.value='';
-}
-async function removeCustomAtcd(id,a){
-  const p=P.find(x=>x.id===id);if(!p||!p.atcdCustom)return;
-  p.atcdCustom=p.atcdCustom.filter(x=>x!==a);await sav(p);render();
-}
+async function toggleAtcd(id,a){const p=P.find(x=>x.id===id);if(!p)return;if(!p.atcdList)p.atcdList=[];const i=p.atcdList.indexOf(a);if(i>=0)p.atcdList.splice(i,1);else p.atcdList.push(a);await sav(p);render()}
+async function addCA(id){const inp=document.getElementById('atcdIn-'+id);const v=inp.value.trim();if(!v)return;const p=P.find(x=>x.id===id);if(!p)return;if(!p.atcdCustom)p.atcdCustom=[];if(!p.atcdCustom.includes(v)){p.atcdCustom.push(v);await sav(p);render()}inp.value=''}
+async function removeCA(id,a){const p=P.find(x=>x.id===id);if(!p||!p.atcdCustom)return;p.atcdCustom=p.atcdCustom.filter(x=>x!==a);await sav(p);render()}
 
 // BILANS
-async function addBilan(id){
-  const p=P.find(x=>x.id===id);if(!p)return;
-  const d=prompt('Date du bilan (JJ/MM/AAAA):',todayFull());
-  if(!d)return;
-  p.bilans.unshift({date:d,bio:{}});
-  activeBilan[id]=0;
-  await sav(p);render();
-}
-function switchBilan(id,idx){activeBilan[id]=idx;render()}
-async function delBilan(id,idx){
-  const p=P.find(x=>x.id===id);if(!p)return;
-  p.bilans.splice(idx,1);
-  if(activeBilan[id]>=p.bilans.length)activeBilan[id]=Math.max(0,p.bilans.length-1);
-  await sav(p);render();
-}
-async function editBilanDate(id,idx){
-  const p=P.find(x=>x.id===id);if(!p||!p.bilans[idx])return;
-  const d=prompt('Nouvelle date:',p.bilans[idx].date);
-  if(!d)return;
-  p.bilans[idx].date=d;
-  await sav(p);render();
-}
-async function updateBio(id,bilanIdx,key,val){
-  const p=P.find(x=>x.id===id);if(!p||!p.bilans[bilanIdx])return;
-  if(!p.bilans[bilanIdx].bio)p.bilans[bilanIdx].bio={};
-  p.bilans[bilanIdx].bio[key]=val;
-  await sav(p);
-}
+async function addBilan(id){const p=P.find(x=>x.id===id);if(!p)return;const d=prompt('Date du bilan (JJ/MM/AAAA):',todayFull());if(!d)return;p.bilans.unshift({date:d,bio:{}});activeBilan[id]=0;await sav(p);render()}
+function switchB(id,i){activeBilan[id]=i;render()}
+async function delB(id,i){const p=P.find(x=>x.id===id);if(!p)return;p.bilans.splice(i,1);if(activeBilan[id]>=p.bilans.length)activeBilan[id]=Math.max(0,p.bilans.length-1);await sav(p);render()}
+async function editBD(id,i){const p=P.find(x=>x.id===id);if(!p||!p.bilans[i])return;const d=prompt('Nouvelle date:',p.bilans[i].date);if(!d)return;p.bilans[i].date=d;await sav(p);render()}
+async function uBio(id,bi,k,v){const p=P.find(x=>x.id===id);if(!p||!p.bilans[bi])return;if(!p.bilans[bi].bio)p.bilans[bi].bio={};p.bilans[bi].bio[k]=v;await sav(p)}
 
 // DELETE
 function askDel(id){cfmId=id;render()}
 function cancelDel(){cfmId=null;render()}
 async function cfmDel(id){P=P.filter(p=>p.id!==id);await del(id);exId=null;cfmId=null;render();tw('Patient supprime')}
 
+// === CONSULT ANESTHESIE SCAN ===
+function startConsultScan(){
+  consultStep=1;consultTexts=[];
+  showConsultModal();
+}
+
+function showConsultModal(){
+  const m=document.getElementById('consultModal');
+  const step=document.getElementById('modalStep');
+  const icon=document.getElementById('modalIcon');
+  const title=document.getElementById('modalTitle');
+  const desc=document.getElementById('modalDesc');
+  if(consultStep===1){
+    step.textContent='ETAPE 1/2';icon.textContent='📄';
+    title.textContent='Page 1 de la consultation';
+    desc.textContent='Prends en photo la premiere page (identite, chirurgien, intervention, ATCD)';
+  }else if(consultStep===2){
+    step.textContent='ETAPE 2/2';icon.textContent='📄';
+    title.textContent='Page 2 de la consultation';
+    desc.textContent='Prends en photo la deuxieme page (traitement, allergies, examen)';
+  }
+  m.classList.add('active');
+}
+
+function skipConsultPage(){
+  if(consultStep===1){consultTexts.push('');consultStep=2;showConsultModal()}
+  else{closeConsultModal();processConsultTexts()}
+}
+
+function closeConsultModal(){document.getElementById('consultModal').classList.remove('active')}
+
+async function handleConsultPhoto(e){
+  const file=e.target.files?.[0];if(!file)return;
+  closeConsultModal();
+  const banner=document.getElementById('ocrB'),bar=document.getElementById('ocrP'),txt=document.getElementById('ocrText');
+  txt.textContent='📄 Lecture page '+consultStep+'/2...';
+  banner.classList.add('active');bar.style.width='0%';
+
+  try{
+    const r=await Tesseract.recognize(file,'fra',{logger:m=>{if(m.status==='recognizing text')bar.style.width=Math.round((m.progress||0)*100)+'%'}});
+    consultTexts.push(r.data.text);
+  }catch(err){
+    console.error(err);consultTexts.push('');
+    tw('OCR page '+consultStep+' echoue');
+  }
+  banner.classList.remove('active');
+  e.target.value='';
+
+  if(consultStep===1){consultStep=2;showConsultModal()}
+  else{processConsultTexts()}
+}
+
+async function processConsultTexts(){
+  const combined=consultTexts.join('\n\n');
+  const data=parseConsult(combined);
+  await addP(data);
+  tw('Consultation scannee');
+}
+
+function parseConsult(text){
+  const d={nom:'',prenom:'',ddn:'',ipp:'',chambre:'',chirurgien:'',motif:'',allergies:'',traitement:'',atcdCustom:[]};
+  const ft=text.replace(/\n+/g,' ').replace(/\s+/g,' ');
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  let m;
+
+  // Nom prenom
+  m=ft.match(/(?:nom|patient[e]?)\s*[:\-]?\s*([A-ZÀ-Ü]{2,})/i);
+  if(m)d.nom=m[1];
+  m=ft.match(/(?:pr[eé]nom)\s*[:\-]?\s*([A-ZÀ-Ü][a-zà-ü]+)/i);
+  if(m)d.prenom=m[1];
+  if(!d.nom){m=ft.match(/\b([A-Z]{2,})\s+([A-Z][a-z]+)/);if(m){d.nom=m[1];d.prenom=m[2]}}
+
+  // DDN / Age
+  m=ft.match(/(?:n[eé]e?\s*(?:le)?|naissance|ddn)\s*[:\-]?\s*(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4})/i)||ft.match(/(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})/);
+  if(m)d.ddn=m[1].replace(/[.\-]/g,'/');
+
+  // IPP
+  m=ft.match(/(?:ipp|ip|ident)\s*[:\-]?\s*(\d{5,15})/i);
+  if(m)d.ipp=m[1];
+
+  // Chambre
+  m=ft.match(/(?:ch(?:ambre)?|lit)\s*[:\-]?\s*([A-Z]?\d{1,4}[A-Z]?)/i);
+  if(m)d.chambre=m[1];
+
+  // Chirurgien
+  m=ft.match(/(?:chirurgien|op[eé]rateur|praticien|dr)\s*[:\-.]?\s*([A-ZÀ-Ü][a-zà-ü]+(?:\s[A-ZÀ-Ü][a-zà-ü]+)?)/i);
+  if(m)d.chirurgien=m[1].trim();
+
+  // Chirurgie / intervention
+  m=ft.match(/(?:intervention|chirurgie|op[eé]ration|acte|geste)\s*(?:pr[eé]vue?)?\s*[:\-]?\s*(.{3,60}?)(?:\.|$|chirurgien|anesth)/i);
+  if(m)d.motif=m[1].trim();
+
+  // Allergies
+  m=ft.match(/(?:allergie[s]?)\s*[:\-]?\s*(.{2,80}?)(?:\.|traitement|ant[eé]c|$)/i);
+  if(m){const a=m[1].trim();if(!/\b(?:aucune|nkda|ras|n[eé]ant|non|pas)\b/i.test(a))d.allergies=a}
+
+  // Traitement
+  m=ft.match(/(?:traitement[s]?|ttt|th[eé]rapeutique)\s*(?:en cours|habituel|actuel)?\s*[:\-]?\s*(.{5,300}?)(?:allergie|ant[eé]c[eé]dent|examen|auscultation|conclusion|$)/i);
+  if(m)d.traitement=m[1].trim().replace(/\s+/g,' ');
+
+  // ATCD - try to extract from text
+  m=ft.match(/(?:ant[eé]c[eé]dent[s]?|atcd)\s*(?:m[eé]dicaux|chirurgicaux|m[eé]d|chir)?\s*[:\-]?\s*(.{5,300}?)(?:traitement|ttt|allergie|examen|$)/i);
+  if(m){
+    const atcdText=m[1].trim();
+    // Match known ATCD
+    const atcdFound=[];
+    ATCD_LIST.forEach(a=>{
+      const re=new RegExp(a.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');
+      if(re.test(atcdText))atcdFound.push(a);
+    });
+    d.atcdList=atcdFound;
+
+    // Remaining text as custom ATCD
+    let remaining=atcdText;
+    atcdFound.forEach(a=>{remaining=remaining.replace(new RegExp(a,'gi'),'')});
+    const custom=remaining.split(/[,;\-•·]/).map(s=>s.trim()).filter(s=>s.length>2&&s.length<50);
+    if(custom.length)d.atcdCustom=custom;
+  }
+
+  return d;
+}
+
+// === LABEL OCR ===
+function triggerCam(){document.getElementById('fileInput').click()}
+async function handlePhoto(e){const file=e.target.files?.[0];if(!file)return;const b=document.getElementById('ocrB'),bar=document.getElementById('ocrP'),txt=document.getElementById('ocrText');txt.textContent='📷 Lecture etiquette...';b.classList.add('active');bar.style.width='0%';try{const r=await Tesseract.recognize(file,'fra',{logger:m=>{if(m.status==='recognizing text')bar.style.width=Math.round((m.progress||0)*100)+'%'}});b.classList.remove('active');await addP(parseL(r.data.text))}catch(err){b.classList.remove('active');await addP();tw('OCR echoue')}e.target.value=''}
+function parseL(t){const d={nom:'',prenom:'',ddn:'',ipp:'',chambre:'',sexe:''},ft=t.split('\n').join(' ');let m;m=ft.match(/(?:n[eé]e?|naissance|ddn)\s*[:.—-]?\s*(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4})/i)||ft.match(/(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})/);if(m)d.ddn=m[1].replace(/[.\-]/g,'/');m=ft.match(/(?:ipp|id|n°)\s*[:.—-]?\s*(\d{5,15})/i)||ft.match(/\b(\d{7,12})\b/);if(m)d.ipp=m[1];m=ft.match(/(?:ch(?:ambre)?|lit|box)\s*[:.—-]?\s*([A-Z]?\d{1,4}[A-Z]?)/i);if(m)d.chambre=m[1];m=ft.match(/\b([A-Z]{2,})\s+([A-Z][a-z]+)/);if(m){d.nom=m[1];d.prenom=m[2]}return d}
+
 // === EXPORT MESSAGE ===
 function exportMsg(id){
   const p=P.find(x=>x.id===id);if(!p)return;
-  let lines=[];
+  let l=[];
   const name=[p.nom,p.prenom].filter(Boolean).join(' ');
-  if(name)lines.push('🏥 '+name);
-  if(p.ddn)lines.push('DDN: '+p.ddn);
-  if(p.ipp)lines.push('IPP: '+p.ipp);
-  if(p.chambre)lines.push('Chambre: '+p.chambre);
-  if(p.chirurgien)lines.push('Chirurgien: '+p.chirurgien);
-  if(p.motif)lines.push('Motif: '+p.motif);
-  if(p.status)lines.push('Statut: '+p.status.charAt(0).toUpperCase()+p.status.slice(1));
+  if(name)l.push('🏥 '+name);
+  if(p.ddn)l.push('DDN: '+p.ddn);
+  if(p.ipp)l.push('IPP: '+p.ipp);
+  if(p.chambre)l.push('Chambre: '+p.chambre);
+  if(p.chirurgien)l.push('Chirurgien: '+p.chirurgien);
+  if(p.motif)l.push('Chirurgie: '+p.motif);
+  if(p.status)l.push('Statut: '+p.status.charAt(0).toUpperCase()+p.status.slice(1));
 
-  const allAtcd=[...(p.atcdList||[]),...(p.atcdCustom||[])];
-  if(allAtcd.length)lines.push('\nATCD: '+allAtcd.join(', '));
+  if(p.allergies)l.push('\n⚠️ Allergies: '+p.allergies);
+
+  const allA=[...(p.atcdList||[]),...(p.atcdCustom||[])];
+  if(allA.length)l.push('\nATCD: '+allA.join(', '));
+
+  if(p.traitement)l.push('\nTraitement: '+p.traitement);
 
   if(p.bilans&&p.bilans.length){
     p.bilans.forEach(b=>{
       const vals=BF.map(f=>b.bio&&b.bio[f.k]?f.l+': '+b.bio[f.k]+(f.u?' '+f.u:''):null).filter(Boolean);
-      if(vals.length)lines.push('\nBio '+b.date+':\n'+vals.join(' | '));
+      if(vals.length)l.push('\nBio '+b.date+':\n'+vals.join(' | '));
     });
   }
+  if(p.notes)l.push('\nNotes: '+p.notes);
 
-  if(p.notes)lines.push('\nNotes: '+p.notes);
-
-  const msg=lines.join('\n');
+  const msg=l.join('\n');
   navigator.clipboard.writeText(msg).then(()=>{tw('Fiche copiee !')}).catch(()=>{
     const ta=document.createElement('textarea');ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);tw('Fiche copiee !');
   });
 }
-
-// === OCR ===
-function triggerCam(){document.getElementById('fileInput').click()}
-async function handlePhoto(e){const file=e.target.files?.[0];if(!file)return;const b=document.getElementById('ocrB'),bar=document.getElementById('ocrP');b.classList.add('active');bar.style.width='0%';try{const r=await Tesseract.recognize(file,'fra',{logger:m=>{if(m.status==='recognizing text')bar.style.width=Math.round((m.progress||0)*100)+'%'}});b.classList.remove('active');await addP(parseL(r.data.text))}catch(err){b.classList.remove('active');await addP();tw('OCR echoue')}e.target.value=''}
-function parseL(t){const ls=t.split('\n').map(l=>l.trim()).filter(Boolean),d={nom:'',prenom:'',ddn:'',ipp:'',chambre:'',sexe:''},ft=ls.join(' ');let m;m=ft.match(/(?:n[eé]e?|naissance|ddn)\s*[:.—-]?\s*(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4})/i)||ft.match(/(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})/);if(m)d.ddn=m[1].replace(/[.\-]/g,'/');m=ft.match(/(?:ipp|id|n°)\s*[:.—-]?\s*(\d{5,15})/i)||ft.match(/\b(\d{7,12})\b/);if(m)d.ipp=m[1];m=ft.match(/(?:ch(?:ambre)?|lit|box)\s*[:.—-]?\s*([A-Z]?\d{1,4}[A-Z]?)/i);if(m)d.chambre=m[1];m=ft.match(/\b([A-Z]{2,})\s+([A-Z][a-z]+)/);if(m){d.nom=m[1];d.prenom=m[2]}return d}
 
 // === BACKUP ===
 async function exportAll(){const a=await getAll(),b=new Blob([JSON.stringify(a,null,2)],{type:'application/json'}),l=document.createElement('a');l.href=URL.createObjectURL(b);l.download='patients-'+new Date().toISOString().slice(0,10)+'.json';l.click();tw('Sauvegarde telechargee')}
@@ -347,7 +455,7 @@ async function purge(){const rm=P.filter(p=>!p.nom&&!p.prenom&&!p.ipp);if(!rm.le
 function tw(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2500)}
 
 // === SW ===
-if('serviceWorker'in navigator){const s="self.addEventListener('install',e=>e.waitUntil(caches.open('pv3').then(c=>c.addAll(['./'])).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('Offline'))))});";navigator.serviceWorker.register(URL.createObjectURL(new Blob([s],{type:'application/javascript'}))).catch(()=>{})}
+if('serviceWorker'in navigator){const s="self.addEventListener('install',e=>e.waitUntil(caches.open('pv4').then(c=>c.addAll(['./'])).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('Offline'))))});";navigator.serviceWorker.register(URL.createObjectURL(new Blob([s],{type:'application/javascript'}))).catch(()=>{})}
 </script>
 </body>
 </html>
