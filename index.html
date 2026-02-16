@@ -229,7 +229,7 @@ function rc(p){
   }
 
   return '<div class="card"><div class="card-header" onclick="tog(\''+p.id+'\')"><div class="dot dot-'+(p.status||'stable')+'"></div><div class="card-info"><div class="card-name">'+esc(p.nom||'—')+' '+esc(p.prenom||'')+'</div><div class="card-detail">'+esc(dt)+'</div></div><svg class="chev '+(op?'open':'')+'" width="20" height="20" viewBox="0 0 20 20"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div><div class="card-body '+(op?'open':'')+'">'
-  +'<div class="grid2">'+fh(p,'nom','Nom')+fh(p,'prenom','Prenom')+fh(p,'ddn','DDN','JJ/MM/AAAA')+fh(p,'ipp','IPP')+fh(p,'chambre','Chambre')+fh(p,'motif','Motif','Pneumopathie...')+'</div>'
+  +'<div class="grid2">'+fh(p,'nom','Nom')+fh(p,'prenom','Prenom')+fh(p,'ddn','DDN','JJ/MM/AAAA')+fh(p,'ipp','IPP')+fh(p,'chambre','Chambre')+fh(p,'chirurgien','Chirurgien')+fh(p,'motif','Motif','Pneumopathie...')+'</div>'
 
   +'<div class="mb12"><label class="sl">Statut</label><div class="sr">'+sb(p,'stable','Stable','a-s')+sb(p,'surveillance','Surv.','a-w')+sb(p,'critique','Critique','a-c')+'</div></div>'
 
@@ -250,7 +250,7 @@ function sb(p,v,l,c){return '<button class="sb '+(p.status===v?c:'')+'" onclick=
 
 // === ACTIONS ===
 function tog(id){exId=exId===id?null:id;cfmId=null;render()}
-async function addP(d={}){const p={id:Date.now()+''+Math.random().toString(36).slice(2,6),nom:'',prenom:'',ddn:'',ipp:'',chambre:'',sexe:'',motif:'',status:'stable',atcdList:[],atcdCustom:[],bilans:[],notes:'',createdAt:new Date().toISOString(),...d};P.unshift(p);await sav(p);exId=p.id;render();tw('Patient ajoute')}
+async function addP(d={}){const p={id:Date.now()+''+Math.random().toString(36).slice(2,6),nom:'',prenom:'',ddn:'',ipp:'',chambre:'',sexe:'',chirurgien:'',motif:'',status:'stable',atcdList:[],atcdCustom:[],bilans:[],notes:'',createdAt:new Date().toISOString(),...d};P.unshift(p);await sav(p);exId=p.id;render();tw('Patient ajoute')}
 async function uf(id,f,v){const p=P.find(x=>x.id===id);if(!p)return;p[f]=v;await sav(p);if(['status','nom','prenom','chambre','motif'].includes(f))render()}
 
 // ATCD
@@ -309,6 +309,7 @@ function exportMsg(id){
   if(p.ddn)lines.push('DDN: '+p.ddn);
   if(p.ipp)lines.push('IPP: '+p.ipp);
   if(p.chambre)lines.push('Chambre: '+p.chambre);
+  if(p.chirurgien)lines.push('Chirurgien: '+p.chirurgien);
   if(p.motif)lines.push('Motif: '+p.motif);
   if(p.status)lines.push('Statut: '+p.status.charAt(0).toUpperCase()+p.status.slice(1));
 
@@ -350,20 +351,3 @@ if('serviceWorker'in navigator){const s="self.addEventListener('install',e=>e.wa
 </html>
 ```
 
-**Ce que donne le bouton "Copier fiche" :**
-```
-🏥 DUPONT Jean
-DDN: 15/03/1952
-Chambre: 412
-Motif: Pneumopathie
-Statut: Surveillance
-
-ATCD: HTA, Diabete T2, FA, BPCO
-
-Bio 16/02/2026:
-Hb: 11.2 g/dL | GB: 14.3 G/L | CRP: 89 mg/L | Creat: 112 µmol/L
-
-Bio 15/02/2026:
-Hb: 10.8 g/dL | GB: 16.1 G/L | CRP: 124 mg/L
-
-Notes: ATB J3, controle CRP demain
