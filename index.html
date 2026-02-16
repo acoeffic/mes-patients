@@ -67,7 +67,6 @@ input,textarea{-webkit-appearance:none}
 .sb.a-w{border-color:#fcc419;background:#fff9db;color:#e67700}
 .sb.a-c{border-color:#ff6b6b;background:#ffe3e3;color:#e03131}
 
-/* ATCD tags */
 .atcd-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .atcd-tag{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid #dee2e6;background:#fff;color:#495057;transition:all .15s;user-select:none}
 .atcd-tag.on{background:#d0ebff;border-color:#74c0fc;color:#1971c2;font-weight:600}
@@ -76,7 +75,6 @@ input,textarea{-webkit-appearance:none}
 .atcd-custom-input:focus{border-color:#228be6}
 .atcd-custom-btn{padding:6px 14px;border-radius:20px;border:none;background:#228be6;color:#fff;font-size:12px;font-weight:600;cursor:pointer}
 
-/* Bio tabs */
 .bio-tabs{display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
 .bio-tabs::-webkit-scrollbar{display:none}
 .bio-tab{padding:6px 12px;border-radius:8px;border:1.5px solid #e9ecef;background:#fff;font-size:12px;font-weight:600;color:#868e96;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
@@ -89,7 +87,6 @@ input,textarea{-webkit-appearance:none}
 .bi input{flex:1;border:none;background:#fff;border-radius:6px;padding:4px 6px;font-size:13px;min-width:0;outline:none}
 .bu{font-size:10px;color:#868e96;white-space:nowrap}
 
-/* Action buttons */
 .btn-row{display:flex;gap:8px;margin-bottom:8px}
 .btn-export{flex:1;padding:10px;border-radius:10px;border:1px solid #d0ebff;background:#e7f5ff;color:#1971c2;font-size:14px;font-weight:600;cursor:pointer;text-align:center}
 .btn-export:active{background:#d0ebff}
@@ -162,7 +159,6 @@ function todayFull(){const d=new Date();return (d.getDate()+'').padStart(2,'0')+
 
 // === INIT ===
 async function init(){P=await getAll();
-  // migrate old bio format
   P.forEach(p=>{
     if(p.bio && !Array.isArray(p.bilans)){
       p.bilans=[{date:todayFull(),bio:p.bio}];delete p.bio;
@@ -177,7 +173,6 @@ init();
 
 // === HELPERS ===
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
-
 function getActiveBilanIdx(p){
   if(!p.bilans||!p.bilans.length)return -1;
   const idx=activeBilan[p.id];
@@ -188,7 +183,7 @@ function getActiveBilanIdx(p){
 // === RENDER ===
 function render(){
   const q=document.getElementById('si').value.toLowerCase().trim();
-  let f=P;if(q)f=P.filter(p=>[p.nom,p.prenom,p.chambre,p.ipp,p.motif].some(v=>(v||'').toLowerCase().includes(q)));
+  let f=P;if(q)f=P.filter(p=>[p.nom,p.prenom,p.chambre,p.ipp,p.motif,p.chirurgien].some(v=>(v||'').toLowerCase().includes(q)));
   const o={critique:0,surveillance:1,stable:2};f.sort((a,b)=>(o[a.status]??3)-(o[b.status]??3));
   document.getElementById('cnt').textContent=P.length+' patient'+(P.length!==1?'s':'');
   const el=document.getElementById('pl');
@@ -198,7 +193,7 @@ function render(){
 
 function rc(p){
   const op=exId===p.id,cf=cfmId===p.id;
-  const dt=[p.chambre&&('Ch.'+p.chambre),p.motif].filter(Boolean).join(' · ')||'Aucun detail';
+  const dt=[p.chambre&&('Ch.'+p.chambre),p.chirurgien&&('Dr '+p.chirurgien),p.motif].filter(Boolean).join(' · ')||'Aucun detail';
   const bilanIdx=getActiveBilanIdx(p);
   const currentBilan=bilanIdx>=0?p.bilans[bilanIdx]:null;
 
@@ -213,11 +208,10 @@ function rc(p){
   atcdHTML+='</div>';
   atcdHTML+='<div class="atcd-custom-row"><input class="atcd-custom-input" id="atcdIn-'+p.id+'" placeholder="Autre ATCD..." onkeydown="if(event.key===\'Enter\')addCustomAtcd(\''+p.id+'\')"><button class="atcd-custom-btn" onclick="addCustomAtcd(\''+p.id+'\')">+</button></div>';
 
-  // Bilan tabs
   let bilanTabsHTML='<div class="bio-tabs">';
   bilanTabsHTML+='<div class="bio-tab bio-tab-add" onclick="addBilan(\''+p.id+'\')">+ Bilan</div>';
   if(p.bilans)p.bilans.forEach((b,i)=>{
-    bilanTabsHTML+='<div class="bio-tab'+(i===bilanIdx?' active':'')+'" onclick="switchBilan(\''+p.id+'\','+i+')">'+esc(b.date)+(p.bilans.length>1?'<span class="bio-tab-del" onclick="event.stopPropagation();delBilan(\''+p.id+'\','+i+')"> ✕</span>':'')+'</div>';
+    bilanTabsHTML+='<div class="bio-tab'+(i===bilanIdx?' active':'')+'" onclick="switchBilan(\''+p.id+'\','+i+')" ondblclick="event.stopPropagation();editBilanDate(\''+p.id+'\','+i+')">'+esc(b.date)+(p.bilans.length>1?'<span class="bio-tab-del" onclick="event.stopPropagation();delBilan(\''+p.id+'\','+i+')"> ✕</span>':'')+'</div>';
   });
   bilanTabsHTML+='</div>';
 
@@ -251,7 +245,7 @@ function sb(p,v,l,c){return '<button class="sb '+(p.status===v?c:'')+'" onclick=
 // === ACTIONS ===
 function tog(id){exId=exId===id?null:id;cfmId=null;render()}
 async function addP(d={}){const p={id:Date.now()+''+Math.random().toString(36).slice(2,6),nom:'',prenom:'',ddn:'',ipp:'',chambre:'',sexe:'',chirurgien:'',motif:'',status:'stable',atcdList:[],atcdCustom:[],bilans:[],notes:'',createdAt:new Date().toISOString(),...d};P.unshift(p);await sav(p);exId=p.id;render();tw('Patient ajoute')}
-async function uf(id,f,v){const p=P.find(x=>x.id===id);if(!p)return;p[f]=v;await sav(p);if(['status','nom','prenom','chambre','motif'].includes(f))render()}
+async function uf(id,f,v){const p=P.find(x=>x.id===id);if(!p)return;p[f]=v;await sav(p);if(['status','nom','prenom','chambre','chirurgien','motif'].includes(f))render()}
 
 // ATCD
 async function toggleAtcd(id,a){
@@ -277,7 +271,9 @@ async function removeCustomAtcd(id,a){
 // BILANS
 async function addBilan(id){
   const p=P.find(x=>x.id===id);if(!p)return;
-  p.bilans.unshift({date:todayFull(),bio:{}});
+  const d=prompt('Date du bilan (JJ/MM/AAAA):',todayFull());
+  if(!d)return;
+  p.bilans.unshift({date:d,bio:{}});
   activeBilan[id]=0;
   await sav(p);render();
 }
@@ -286,6 +282,13 @@ async function delBilan(id,idx){
   const p=P.find(x=>x.id===id);if(!p)return;
   p.bilans.splice(idx,1);
   if(activeBilan[id]>=p.bilans.length)activeBilan[id]=Math.max(0,p.bilans.length-1);
+  await sav(p);render();
+}
+async function editBilanDate(id,idx){
+  const p=P.find(x=>x.id===id);if(!p||!p.bilans[idx])return;
+  const d=prompt('Nouvelle date:',p.bilans[idx].date);
+  if(!d)return;
+  p.bilans[idx].date=d;
   await sav(p);render();
 }
 async function updateBio(id,bilanIdx,key,val){
@@ -327,7 +330,6 @@ function exportMsg(id){
 
   const msg=lines.join('\n');
   navigator.clipboard.writeText(msg).then(()=>{tw('Fiche copiee !')}).catch(()=>{
-    // Fallback
     const ta=document.createElement('textarea');ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);tw('Fiche copiee !');
   });
 }
@@ -345,9 +347,7 @@ async function purge(){const rm=P.filter(p=>!p.nom&&!p.prenom&&!p.ipp);if(!rm.le
 function tw(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2500)}
 
 // === SW ===
-if('serviceWorker'in navigator){const s="self.addEventListener('install',e=>e.waitUntil(caches.open('pv2').then(c=>c.addAll(['./'])).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('Offline'))))});";navigator.serviceWorker.register(URL.createObjectURL(new Blob([s],{type:'application/javascript'}))).catch(()=>{})}
+if('serviceWorker'in navigator){const s="self.addEventListener('install',e=>e.waitUntil(caches.open('pv3').then(c=>c.addAll(['./'])).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('Offline'))))});";navigator.serviceWorker.register(URL.createObjectURL(new Blob([s],{type:'application/javascript'}))).catch(()=>{})}
 </script>
 </body>
 </html>
-```
-
