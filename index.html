@@ -8,7 +8,6 @@
 <meta name="apple-mobile-web-app-title" content="Mes Patients">
 <meta name="theme-color" content="#1971c2">
 <title>Mes Patients</title>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Roboto,sans-serif;background:#f1f3f5;color:#212529;min-height:100vh;overscroll-behavior:none}
@@ -19,21 +18,12 @@ input,textarea{-webkit-appearance:none}
 .header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .header h1{font-size:22px;font-weight:800;color:#fff}
 .count{font-size:13px;color:rgba(255,255,255,.7)}
-.header-actions{display:flex;gap:6px}
-.btn-icon{width:42px;height:42px;border-radius:12px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.btn-icon:active{transform:scale(.92)}
-.btn-cam{background:rgba(255,255,255,.2)}
-.btn-doc{background:rgba(255,255,255,.25)}
-.btn-add{background:#fff;color:#228be6;font-size:26px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.btn-add{width:42px;height:42px;border-radius:12px;border:none;background:#fff;color:#228be6;font-size:26px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.btn-add:active{transform:scale(.92)}
 .search-box{position:relative}
 .search-box input{width:100%;padding:10px 12px 10px 36px;border-radius:10px;border:none;background:rgba(255,255,255,.2);color:#fff;font-size:14px;outline:none}
 .search-box input::placeholder{color:rgba(255,255,255,.5)}
 .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%)}
-
-.ocr-banner{margin:12px 16px;padding:14px;background:#e7f5ff;border-radius:12px;text-align:center;font-size:14px;color:#1971c2;font-weight:500;display:none}
-.ocr-banner.active{display:block}
-.ocr-progress{height:4px;background:#d0ebff;border-radius:2px;margin-top:8px;overflow:hidden}
-.ocr-progress-bar{height:100%;background:#228be6;border-radius:2px;transition:width .3s;width:0}
 
 .patient-list{padding:12px 16px 120px}
 .empty-state{text-align:center;padding:60px 20px}
@@ -102,7 +92,7 @@ input,textarea{-webkit-appearance:none}
 
 .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#212529;color:#fff;padding:10px 20px;border-radius:10px;font-size:14px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%;text-align:center}
 .toast.show{opacity:1}
-#fileInput,#consultInput,#importInput{display:none}
+#importInput{display:none}
 .tools{display:flex;gap:8px;margin:12px 16px 0}
 .bt{flex:1;padding:8px;border-radius:8px;border:1px solid #dee2e6;background:#fff;font-size:12px;font-weight:500;color:#495057;cursor:pointer;text-align:center}
 </style>
@@ -111,20 +101,12 @@ input,textarea{-webkit-appearance:none}
 <div class="header">
 <div class="header-row">
 <div><h1>Mes Patients</h1><span class="count" id="cnt">0 patient</span></div>
-<div class="header-actions">
-<button class="btn-icon btn-cam" onclick="triggerCam()" title="Etiquette"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="3"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.5"/></svg></button>
-<button class="btn-icon btn-doc" onclick="triggerConsult()" title="Consult ATCD"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></button>
-<button class="btn-icon btn-add" onclick="addP()">+</button>
-</div></div>
+<button class="btn-add" onclick="addP()">+</button>
+</div>
 <div class="search-box">
 <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
 <input type="text" id="si" placeholder="Rechercher un patient..." oninput="render()">
 </div></div>
-
-<div class="ocr-banner" id="ocrB"><span id="ocrText">Lecture en cours...</span><div class="ocr-progress"><div class="ocr-progress-bar" id="ocrP"></div></div></div>
-
-<input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handlePhoto(event)">
-<input type="file" id="consultInput" accept="image/*" capture="environment" onchange="handleConsult(event)">
 
 <div class="tools">
 <button class="bt" onclick="exportAll()">Sauvegarder</button>
@@ -190,7 +172,7 @@ function render(){
   const o={critique:0,surveillance:1,stable:2};f.sort((a,b)=>(o[a.status]??3)-(o[b.status]??3));
   document.getElementById('cnt').textContent=P.length+' patient'+(P.length!==1?'s':'');
   const el=document.getElementById('pl');
-  if(!f.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏥</div><div class="empty-title">'+(q?'Aucun resultat':'Aucun patient')+'</div><div class="empty-sub">'+(q?'Essaie un autre terme':'Appuie sur + ou camera')+'</div></div>';return}
+  if(!f.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏥</div><div class="empty-title">'+(q?'Aucun resultat':'Aucun patient')+'</div><div class="empty-sub">'+(q?'Essaie un autre terme':'Appuie sur +')+'</div></div>';return}
   el.innerHTML=f.map(rc).join('');
 }
 
@@ -240,8 +222,8 @@ function sBtn(p,v,l,c){return '<button class="sb '+(p.status===v?c:'')+'" onclic
 // === ACTIONS ===
 function tog(id){exId=exId===id?null:id;cfmId=null;render()}
 
-async function addP(d={}){
-  const p={id:Date.now()+''+Math.random().toString(36).slice(2,6),nom:'',prenom:'',ddn:'',ipp:'',chambre:'',sexe:'',chirurgien:'',motif:'',status:'stable',atcdList:[],atcdCustom:[],allergies:'',traitement:'',bilans:[],notes:'',createdAt:new Date().toISOString(),...d};
+async function addP(){
+  const p={id:Date.now()+''+Math.random().toString(36).slice(2,6),nom:'',prenom:'',ddn:'',ipp:'',chambre:'',chirurgien:'',motif:'',status:'stable',atcdList:[],atcdCustom:[],allergies:'',traitement:'',bilans:[],notes:'',createdAt:new Date().toISOString()};
   P.unshift(p);await sav(p);exId=p.id;render();tw('Patient ajoute');
 }
 
@@ -327,144 +309,6 @@ function exportMsg(id){
   });
 }
 
-// === OCR HELPERS ===
-function showOCR(txt){document.getElementById('ocrText').textContent=txt;document.getElementById('ocrP').style.width='0%';document.getElementById('ocrB').classList.add('active')}
-function hideOCR(){document.getElementById('ocrB').classList.remove('active')}
-function setOCRProg(v){document.getElementById('ocrP').style.width=Math.round((v||0)*100)+'%'}
-
-async function ocrFile(file,label){
-  showOCR(label);
-  try{
-    const r=await Tesseract.recognize(file,'fra',{logger:m=>{if(m.status==='recognizing text')setOCRProg(m.progress)}});
-    hideOCR();return r.data.text;
-  }catch(e){hideOCR();return null}
-}
-
-// === OCR ETIQUETTE ===
-function triggerCam(){document.getElementById('fileInput').click()}
-
-async function handlePhoto(e){
-  const file=e.target.files?.[0];if(!file)return;
-  const txt=await ocrFile(file,'📷 Lecture etiquette...');
-  if(txt)await addP(parseLabel(txt));else{await addP();tw('OCR echoue')}
-  e.target.value='';
-}
-
-// === OCR CONSULT ATCD (1 seule photo) ===
-function triggerConsult(){document.getElementById('consultInput').click()}
-
-async function handleConsult(e){
-  const file=e.target.files?.[0];if(!file)return;
-  const txt=await ocrFile(file,'📄 Lecture ATCD / Traitement...');
-  if(txt){
-    const data=parseConsult(txt);
-    await addP(data);
-  }else{
-    await addP();tw('OCR echoue');
-  }
-  e.target.value='';
-}
-
-// === PARSERS ===
-function parseLabel(t){
-  const ft=t.split('\n').map(l=>l.trim()).filter(Boolean).join(' ');
-  const d={nom:'',prenom:'',ddn:'',ipp:'',chambre:'',sexe:''};let m;
-  m=ft.match(/(?:n[eé]e?|naissance|ddn)\s*[:.—-]?\s*(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4})/i)||ft.match(/(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})/);
-  if(m)d.ddn=m[1].replace(/[.\-]/g,'/');
-  m=ft.match(/(?:ipp|id|n°)\s*[:.—-]?\s*(\d{5,15})/i)||ft.match(/\b(\d{7,12})\b/);
-  if(m)d.ipp=m[1];
-  m=ft.match(/(?:ch(?:ambre)?|lit|box)\s*[:.—-]?\s*([A-Z]?\d{1,4}[A-Z]?)/i);
-  if(m)d.chambre=m[1];
-  m=ft.match(/\b([A-Z]{2,})\s+([A-Z][a-z]+)/);
-  if(m){d.nom=m[1];d.prenom=m[2]}
-  return d;
-}
-
-function parseConsult(t){
-  const ft=t.split('\n').map(l=>l.trim()).filter(Boolean).join(' ');
-  const d={nom:'',prenom:'',ddn:'',ipp:'',chambre:'',chirurgien:'',motif:'',atcdList:[],atcdCustom:[],allergies:'',traitement:''};
-  let m;
-
-  // Nom prenom
-  m=ft.match(/(?:nom|patient)\s*[:.—-]?\s*([A-Z\u00C0-\u00DC]{2,})\s+([A-Z\u00C0-\u00DC][a-z\u00E0-\u00FC]+)/i);
-  if(m){d.nom=m[1];d.prenom=m[2]}
-  else{m=ft.match(/\b([A-Z]{2,})\s+([A-Z][a-z]+)/);if(m){d.nom=m[1];d.prenom=m[2]}}
-
-  // DDN / Age
-  m=ft.match(/(?:n[eé]e?|naissance|ddn|dn)\s*[:.—-]?\s*(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4})/i)||ft.match(/(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})/);
-  if(m)d.ddn=m[1].replace(/[.\-]/g,'/');
-  m=ft.match(/(\d{1,3})\s*ans/i);
-  if(m&&!d.ddn)d.ddn=m[1]+' ans';
-
-  // IPP
-  m=ft.match(/(?:ipp|id|n°)\s*[:.—-]?\s*(\d{5,15})/i);
-  if(m)d.ipp=m[1];
-
-  // Allergies
-  m=ft.match(/(?:allergie[s]?)\s*[:.—-]?\s*(.{2,100}?)(?:\n|ant[eé]c|traitement|$)/i);
-  if(m){const a=m[1].trim();if(!/n[eé]ant|aucun|ras|pas d|^0$|^non$/i.test(a))d.allergies=a}
-
-  // === SECTIONS PAR TITRES CONNUS ===
-  const norm=ft.toLowerCase()
-    .replace(/[éèê]/g,'e').replace(/[àâ]/g,'a').replace(/[ùû]/g,'u')
-    .replace(/[ôö]/g,'o').replace(/[îï]/g,'i').replace(/[ç]/g,'c');
-
-  function extractSection(startKeys,endKeys){
-    let start=-1;
-    for(const k of startKeys){const i=norm.indexOf(k);if(i>=0){start=i;break}}
-    if(start<0)return '';
-    const after=norm.slice(start);
-    let end=after.length;
-    for(const kw of endKeys){const i=after.indexOf(kw,15);if(i>0&&i<end)end=i}
-    return ft.slice(start,start+end).replace(/^[^:]*[:.—-]\s*/,'');
-  }
-
-  // Traitement personnel du patient
-  const tttRaw=extractSection(
-    ['traitement personnel','traitement du patient','traitement habituel','ttt personnel','ttt'],
-    ['antecedents chir','antecedents med','allergie','intervention','examen','bilan','score','chirurgien']
-  );
-  if(tttRaw){
-    d.traitement=tttRaw.split(/[,;\n•·–]+/).map(s=>s.trim()).filter(s=>s.length>1&&s.length<80).join('\n');
-  }
-
-  // Antécédents médicaux
-  const medRaw=extractSection(
-    ['antecedents medicaux','atcd medicaux','antecedents med'],
-    ['antecedents chirurgicaux','antecedents chir','traitement','allergie','intervention','examen','bilan']
-  );
-  const medItems=medRaw?medRaw.split(/[,;\n•·–]+/).map(s=>s.trim()).filter(s=>s.length>1&&s.length<60):[];
-
-  // Antécédents chirurgicaux
-  const chirRaw=extractSection(
-    ['antecedents chirurgicaux','atcd chirurgicaux','antecedents chir'],
-    ['antecedents med','traitement','allergie','intervention','examen','bilan']
-  );
-  const chirItems=chirRaw?chirRaw.split(/[,;\n•·–]+/).map(s=>s.trim()).filter(s=>s.length>1&&s.length<60):[];
-
-  // Fallback générique
-  let fallbackItems=[];
-  if(!medItems.length&&!chirItems.length){
-    m=ft.match(/(?:ant[eé]c[eé]dents?|atcd)\s*[:.—-]?\s*([\s\S]{5,300}?)(?:traitement|allergie|intervention|$)/i);
-    if(m)fallbackItems=m[1].split(/[,;\n•·–]+/).map(s=>s.trim()).filter(s=>s.length>1&&s.length<60);
-  }
-
-  // Matcher ATCD connus + custom
-  const allItems=[...medItems,...chirItems,...fallbackItems];
-  const known=ATCD_LIST.map(a=>a.toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a'));
-  const matched=[],custom=[];
-  allItems.forEach(r=>{
-    const rl=r.toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a');
-    const found=ATCD_LIST.find((a,i)=>rl.includes(known[i]));
-    if(found){if(!matched.includes(found))matched.push(found)}
-    else if(r.length>2)custom.push(r);
-  });
-  d.atcdList=matched;
-  d.atcdCustom=custom;
-
-  return d;
-}
-
 // === BACKUP ===
 async function exportAll(){const a=await getAll(),b=new Blob([JSON.stringify(a,null,2)],{type:'application/json'}),l=document.createElement('a');l.href=URL.createObjectURL(b);l.download='patients-'+new Date().toISOString().slice(0,10)+'.json';l.click();tw('Sauvegarde telechargee')}
 async function importD(e){const file=e.target.files?.[0];if(!file)return;try{const t=await file.text(),imp=JSON.parse(t);let c=0;for(const p of imp){if(p.id&&!P.find(x=>x.id===p.id)){P.push(p);await sav(p);c++}}render();tw(c+' importe(s)')}catch{tw("Erreur")}e.target.value=''}
@@ -473,7 +317,7 @@ async function purge(){const rm=P.filter(p=>!p.nom&&!p.prenom&&!p.ipp);if(!rm.le
 function tw(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2500)}
 
 // === SW ===
-if('serviceWorker'in navigator){const s="self.addEventListener('install',e=>e.waitUntil(caches.open('pv6').then(c=>c.addAll(['./'])).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('Offline'))))});";navigator.serviceWorker.register(URL.createObjectURL(new Blob([s],{type:'application/javascript'}))).catch(()=>{})}
+if('serviceWorker'in navigator){const s="self.addEventListener('install',e=>e.waitUntil(caches.open('pv7').then(c=>c.addAll(['./'])).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('Offline'))))});";navigator.serviceWorker.register(URL.createObjectURL(new Blob([s],{type:'application/javascript'}))).catch(()=>{})}
 </script>
 </body>
 </html>
