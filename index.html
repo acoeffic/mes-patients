@@ -113,7 +113,7 @@ input,textarea{-webkit-appearance:none}
 <div><h1>Mes Patients</h1><span class="count" id="cnt">0 patient</span></div>
 <div class="header-actions">
 <button class="btn-icon btn-cam" onclick="triggerCam()" title="Etiquette"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="3"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.5"/></svg></button>
-<button class="btn-icon btn-doc" onclick="startConsult()" title="Consult anesth"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></button>
+<button class="btn-icon btn-doc" onclick="triggerConsult()" title="Consult ATCD"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></button>
 <button class="btn-icon btn-add" onclick="addP()">+</button>
 </div></div>
 <div class="search-box">
@@ -122,8 +122,9 @@ input,textarea{-webkit-appearance:none}
 </div></div>
 
 <div class="ocr-banner" id="ocrB"><span id="ocrText">Lecture en cours...</span><div class="ocr-progress"><div class="ocr-progress-bar" id="ocrP"></div></div></div>
+
 <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handlePhoto(event)">
-<input type="file" id="consultInput" accept="image/*" capture="environment" onchange="handleConsultPhoto(event)">
+<input type="file" id="consultInput" accept="image/*" capture="environment" onchange="handleConsult(event)">
 
 <div class="tools">
 <button class="bt" onclick="exportAll()">Sauvegarder</button>
@@ -144,7 +145,7 @@ async function sav(p){const d=await odb();return new Promise((s,j)=>{const t=d.t
 async function del(id){const d=await odb();return new Promise((s,j)=>{const t=d.transaction(ST,'readwrite');t.objectStore(ST).delete(id);t.oncomplete=()=>s();t.onerror=()=>j(t.error)})}
 
 // === STATE ===
-let P=[],exId=null,cfmId=null,activeBilan={},consultPages=[],saveTimers={};
+let P=[],exId=null,cfmId=null,activeBilan={},saveTimers={};
 
 const BF=[
   {k:'hb',l:'Hb',u:'g/dL'},{k:'plq',l:'Plq',u:'G/L'},
@@ -180,12 +181,7 @@ init();
 // === HELPERS ===
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function getABI(p){if(!p.bilans||!p.bilans.length)return -1;const i=activeBilan[p.id];return(i!==undefined&&i<p.bilans.length)?i:0}
-
-// Debounced save — saves 300ms after last keystroke
-function debouncedSav(p){
-  if(saveTimers[p.id])clearTimeout(saveTimers[p.id]);
-  saveTimers[p.id]=setTimeout(()=>sav(p),300);
-}
+function debouncedSav(p){if(saveTimers[p.id])clearTimeout(saveTimers[p.id]);saveTimers[p.id]=setTimeout(()=>sav(p),300)}
 
 // === RENDER ===
 function render(){
@@ -203,13 +199,11 @@ function rc(p){
   const dt=[p.chambre&&('Ch.'+p.chambre),p.chirurgien&&('Dr '+p.chirurgien),p.motif].filter(Boolean).join(' · ')||'Aucun detail';
   const bi=getABI(p),cb=bi>=0?p.bilans[bi]:null;
 
-  // ATCD
   let ah='<div class="atcd-tags">';
   ATCD_LIST.forEach(a=>{ah+='<span class="atcd-tag'+(p.atcdList.includes(a)?' on':'')+'" onclick="toggleAtcd(\''+p.id+'\',\''+esc(a)+'\')">'+esc(a)+'</span>'});
   if(p.atcdCustom)p.atcdCustom.forEach(a=>{ah+='<span class="atcd-tag on" onclick="removeCA(\''+p.id+'\',\''+esc(a)+'\')">'+esc(a)+' ✕</span>'});
   ah+='</div><div class="atcd-custom-row"><input class="atcd-custom-input" id="ai-'+p.id+'" placeholder="Autre ATCD..." onkeydown="if(event.key===\'Enter\')addCA(\''+p.id+'\')"><button class="atcd-custom-btn" onclick="addCA(\''+p.id+'\')">+</button></div>';
 
-  // Bilan tabs
   let bt='<div class="bio-tabs"><div class="bio-tab bio-tab-add" onclick="addBilan(\''+p.id+'\')">+ Bilan</div>';
   if(p.bilans)p.bilans.forEach((b,i)=>{bt+='<div class="bio-tab'+(i===bi?' active':'')+'" onclick="switchB(\''+p.id+'\','+i+')" ondblclick="event.stopPropagation();editBD(\''+p.id+'\','+i+')">'+esc(b.date)+(p.bilans.length>1?'<span class="bio-tab-del" onclick="event.stopPropagation();delB(\''+p.id+'\','+i+')"> ✕</span>':'')+'</div>'});
   bt+='</div>';
@@ -317,77 +311,59 @@ function exportMsg(id){
   if(p.motif)l.push('Motif: '+p.motif);
   if(p.status)l.push('Statut: '+p.status.charAt(0).toUpperCase()+p.status.slice(1));
   if(p.allergies)l.push('\n⚠️ Allergies: '+p.allergies);
-
   const allA=[...(p.atcdList||[]),...(p.atcdCustom||[])];
   if(allA.length)l.push('\nATCD: '+allA.join(', '));
-
   if(p.traitement)l.push('\nTraitement:\n'+p.traitement);
-
   if(p.bilans&&p.bilans.length){
     p.bilans.forEach(b=>{
       const vals=BF.map(f=>b.bio&&b.bio[f.k]?f.l+': '+b.bio[f.k]+(f.u?' '+f.u:''):null).filter(Boolean);
       if(vals.length)l.push('\nBio '+b.date+':\n'+vals.join(' | '));
     });
   }
-
   if(p.notes)l.push('\nNotes: '+p.notes);
-
   const msg=l.join('\n');
   navigator.clipboard.writeText(msg).then(()=>tw('Fiche copiee !')).catch(()=>{
     const ta=document.createElement('textarea');ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);tw('Fiche copiee !');
   });
 }
 
-// === OCR ETIQUETTE ===
-function triggerCam(){document.getElementById('fileInput').click()}
-async function handlePhoto(e){
-  const file=e.target.files?.[0];if(!file)return;
-  showOCR('📷 Lecture etiquette...');
+// === OCR HELPERS ===
+function showOCR(txt){document.getElementById('ocrText').textContent=txt;document.getElementById('ocrP').style.width='0%';document.getElementById('ocrB').classList.add('active')}
+function hideOCR(){document.getElementById('ocrB').classList.remove('active')}
+function setOCRProg(v){document.getElementById('ocrP').style.width=Math.round((v||0)*100)+'%'}
+
+async function ocrFile(file,label){
+  showOCR(label);
   try{
     const r=await Tesseract.recognize(file,'fra',{logger:m=>{if(m.status==='recognizing text')setOCRProg(m.progress)}});
-    hideOCR();await addP(parseLabel(r.data.text));
-  }catch(err){hideOCR();await addP();tw('OCR echoue')}
+    hideOCR();return r.data.text;
+  }catch(e){hideOCR();return null}
+}
+
+// === OCR ETIQUETTE ===
+function triggerCam(){document.getElementById('fileInput').click()}
+
+async function handlePhoto(e){
+  const file=e.target.files?.[0];if(!file)return;
+  const txt=await ocrFile(file,'📷 Lecture etiquette...');
+  if(txt)await addP(parseLabel(txt));else{await addP();tw('OCR echoue')}
   e.target.value='';
 }
 
-// === OCR CONSULT ANESTHESIE (2 pages) ===
-function startConsult(){
-  consultPages=[];
-  tw('📄 Photo page 1/2');
-  document.getElementById('consultInput').click();
-}
+// === OCR CONSULT ATCD (1 seule photo) ===
+function triggerConsult(){document.getElementById('consultInput').click()}
 
-async function handleConsultPhoto(e){
+async function handleConsult(e){
   const file=e.target.files?.[0];if(!file)return;
-  const pageNum=consultPages.length+1;
-  showOCR('📄 Lecture page '+pageNum+'/2...');
-
-  try{
-    const r=await Tesseract.recognize(file,'fra',{logger:m=>{if(m.status==='recognizing text')setOCRProg(m.progress)}});
-    consultPages.push(r.data.text);
-    hideOCR();
-
-    if(consultPages.length<2){
-      e.target.value='';
-      tw('📄 Photo page 2/2');
-      setTimeout(()=>document.getElementById('consultInput').click(),500);
-    }else{
-      e.target.value='';
-      const fullText=consultPages.join('\n\n');
-      const data=parseConsult(fullText);
-      await addP(data);
-      consultPages=[];
-    }
-  }catch(err){
-    hideOCR();consultPages=[];
+  const txt=await ocrFile(file,'📄 Lecture ATCD / Traitement...');
+  if(txt){
+    const data=parseConsult(txt);
+    await addP(data);
+  }else{
     await addP();tw('OCR echoue');
-    e.target.value='';
   }
+  e.target.value='';
 }
-
-function showOCR(txt){const b=document.getElementById('ocrB');document.getElementById('ocrText').textContent=txt;document.getElementById('ocrP').style.width='0%';b.classList.add('active')}
-function hideOCR(){document.getElementById('ocrB').classList.remove('active')}
-function setOCRProg(v){document.getElementById('ocrP').style.width=Math.round((v||0)*100)+'%'}
 
 // === PARSERS ===
 function parseLabel(t){
@@ -406,8 +382,7 @@ function parseLabel(t){
 
 function parseConsult(t){
   const ft=t.split('\n').map(l=>l.trim()).filter(Boolean).join(' ');
-  const lines=t.split('\n').map(l=>l.trim()).filter(Boolean);
-  const d={nom:'',prenom:'',ddn:'',ipp:'',chambre:'',chirurgien:'',motif:'',atcdCustom:[],allergies:'',traitement:''};
+  const d={nom:'',prenom:'',ddn:'',ipp:'',chambre:'',chirurgien:'',motif:'',atcdList:[],atcdCustom:[],allergies:'',traitement:''};
   let m;
 
   // Nom prenom
@@ -425,36 +400,67 @@ function parseConsult(t){
   m=ft.match(/(?:ipp|id|n°)\s*[:.—-]?\s*(\d{5,15})/i);
   if(m)d.ipp=m[1];
 
-  // Chirurgien
-  m=ft.match(/(?:chirurgien|chir(?:urgie)?|op[eé]rateur|dr)\s*[:.—-]?\s*(?:dr\.?\s*)?([A-Z\u00C0-\u00DC][A-Za-z\u00E0-\u00FC\s\-]{2,25})/i);
-  if(m)d.chirurgien=m[1].trim();
-
-  // Chirurgie / intervention
-  m=ft.match(/(?:intervention|chirurgie|op[eé]ration|geste|indication)\s*[:.—-]?\s*(.{3,60}?)(?:\.|$)/i);
-  if(m)d.motif=m[1].trim();
-
   // Allergies
-  m=ft.match(/(?:allergie[s]?)\s*[:.—-]?\s*(.{2,80}?)(?:\n|\.|\bant[eé]c|$)/i);
-  if(m){const a=m[1].trim();if(!/n[eé]ant|aucun|ras|pas |0/i.test(a))d.allergies=a}
+  m=ft.match(/(?:allergie[s]?)\s*[:.—-]?\s*(.{2,100}?)(?:\n|ant[eé]c|traitement|$)/i);
+  if(m){const a=m[1].trim();if(!/n[eé]ant|aucun|ras|pas d|^0$|^non$/i.test(a))d.allergies=a}
 
-  // ATCD
-  m=ft.match(/(?:ant[eé]c[eé]dents?|atcd|atcds)\s*[:.—-]?\s*([\s\S]{5,300}?)(?:traitement|allergie|intervention|chirurgie|examen|bilan|$)/i);
-  if(m){
-    const raw=m[1].replace(/[-•·–]/g,',').split(/[,\n;]+/).map(s=>s.trim()).filter(s=>s.length>1&&s.length<60);
-    const known=ATCD_LIST.map(a=>a.toLowerCase());
-    const matched=[];const custom=[];
-    raw.forEach(r=>{
-      const rl=r.toLowerCase();
-      const found=ATCD_LIST.find((a,i)=>rl.includes(known[i]));
-      if(found){if(!matched.includes(found))matched.push(found)}
-      else{custom.push(r)}
-    });
-    d.atcdList=matched;d.atcdCustom=custom;
+  // === SECTIONS PAR TITRES CONNUS ===
+  const norm=ft.toLowerCase()
+    .replace(/[éèê]/g,'e').replace(/[àâ]/g,'a').replace(/[ùû]/g,'u')
+    .replace(/[ôö]/g,'o').replace(/[îï]/g,'i').replace(/[ç]/g,'c');
+
+  function extractSection(startKeys,endKeys){
+    let start=-1;
+    for(const k of startKeys){const i=norm.indexOf(k);if(i>=0){start=i;break}}
+    if(start<0)return '';
+    const after=norm.slice(start);
+    let end=after.length;
+    for(const kw of endKeys){const i=after.indexOf(kw,15);if(i>0&&i<end)end=i}
+    return ft.slice(start,start+end).replace(/^[^:]*[:.—-]\s*/,'');
   }
 
-  // Traitement
-  m=ft.match(/(?:traitement|ttt|th[eé]rapeutique)\s*[:.—-]?\s*([\s\S]{5,500}?)(?:allergie|ant[eé]c|examen|bilan|intervention|$)/i);
-  if(m)d.traitement=m[1].replace(/[-•·–]/g,'\n').split(/\n+/).map(s=>s.trim()).filter(Boolean).join('\n');
+  // Traitement personnel du patient
+  const tttRaw=extractSection(
+    ['traitement personnel','traitement du patient','traitement habituel','ttt personnel','ttt'],
+    ['antecedents chir','antecedents med','allergie','intervention','examen','bilan','score','chirurgien']
+  );
+  if(tttRaw){
+    d.traitement=tttRaw.split(/[,;\n•·–]+/).map(s=>s.trim()).filter(s=>s.length>1&&s.length<80).join('\n');
+  }
+
+  // Antécédents médicaux
+  const medRaw=extractSection(
+    ['antecedents medicaux','atcd medicaux','antecedents med'],
+    ['antecedents chirurgicaux','antecedents chir','traitement','allergie','intervention','examen','bilan']
+  );
+  const medItems=medRaw?medRaw.split(/[,;\n•·–]+/).map(s=>s.trim()).filter(s=>s.length>1&&s.length<60):[];
+
+  // Antécédents chirurgicaux
+  const chirRaw=extractSection(
+    ['antecedents chirurgicaux','atcd chirurgicaux','antecedents chir'],
+    ['antecedents med','traitement','allergie','intervention','examen','bilan']
+  );
+  const chirItems=chirRaw?chirRaw.split(/[,;\n•·–]+/).map(s=>s.trim()).filter(s=>s.length>1&&s.length<60):[];
+
+  // Fallback générique
+  let fallbackItems=[];
+  if(!medItems.length&&!chirItems.length){
+    m=ft.match(/(?:ant[eé]c[eé]dents?|atcd)\s*[:.—-]?\s*([\s\S]{5,300}?)(?:traitement|allergie|intervention|$)/i);
+    if(m)fallbackItems=m[1].split(/[,;\n•·–]+/).map(s=>s.trim()).filter(s=>s.length>1&&s.length<60);
+  }
+
+  // Matcher ATCD connus + custom
+  const allItems=[...medItems,...chirItems,...fallbackItems];
+  const known=ATCD_LIST.map(a=>a.toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a'));
+  const matched=[],custom=[];
+  allItems.forEach(r=>{
+    const rl=r.toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a');
+    const found=ATCD_LIST.find((a,i)=>rl.includes(known[i]));
+    if(found){if(!matched.includes(found))matched.push(found)}
+    else if(r.length>2)custom.push(r);
+  });
+  d.atcdList=matched;
+  d.atcdCustom=custom;
 
   return d;
 }
@@ -467,7 +473,7 @@ async function purge(){const rm=P.filter(p=>!p.nom&&!p.prenom&&!p.ipp);if(!rm.le
 function tw(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2500)}
 
 // === SW ===
-if('serviceWorker'in navigator){const s="self.addEventListener('install',e=>e.waitUntil(caches.open('pv4').then(c=>c.addAll(['./'])).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('Offline'))))});";navigator.serviceWorker.register(URL.createObjectURL(new Blob([s],{type:'application/javascript'}))).catch(()=>{})}
+if('serviceWorker'in navigator){const s="self.addEventListener('install',e=>e.waitUntil(caches.open('pv6').then(c=>c.addAll(['./'])).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('Offline'))))});";navigator.serviceWorker.register(URL.createObjectURL(new Blob([s],{type:'application/javascript'}))).catch(()=>{})}
 </script>
 </body>
 </html>
