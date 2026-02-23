@@ -103,6 +103,9 @@ input,textarea{-webkit-appearance:none}
 .todo-add-input{flex:1;border:1px solid #e9ecef;border-radius:8px;padding:8px 10px;font-size:13px;outline:none}
 .todo-add-input:focus{border-color:#228be6}
 .todo-add-btn{padding:8px 14px;border-radius:8px;border:none;background:#228be6;color:#fff;font-size:13px;font-weight:600;cursor:pointer}
+.todo-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.todo-preset{padding:5px 10px;border-radius:16px;font-size:11px;font-weight:500;cursor:pointer;border:1.5px solid #d0ebff;background:#e7f5ff;color:#1971c2;user-select:none;transition:all .15s}
+.todo-preset:active{background:#d0ebff}
 
 .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#212529;color:#fff;padding:10px 20px;border-radius:10px;font-size:14px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%;text-align:center}
 .toast.show{opacity:1}
@@ -158,12 +161,16 @@ const BF=[
 
 const ATCD_LIST=[
   'HTA','Diabete T2','Diabete T1','FA','BPCO','Asthme',
-  'IRC','Insuf. cardiaque','IDM','AVC','Cancer',
-  'Obesite','Tabac','Alcool','Demence','Epilepsie',
-  'Hypothyroidie','Hyperthyroidie','TVP/EP','Cirrhose',
-  'VIH','Hepatite','Pacemaker','Valvulopathie'
+  'IRC','Insuf. cardiaque','IDM','AVC','Demence','Epilepsie',
+  'TVP/EP','Pacemaker','Valvulopathie'
 ];
 
+const TODO_PRESETS=[
+  'Bilan a voir','Analgesie','Tropo','Avis infectio',
+  'Scanner','Hemocultures','ECBU',
+  'Antibiotiques','Anticoagulation',
+];
+  
 function todayFull(){const d=new Date();return (d.getDate()+'').padStart(2,'0')+'/'+(d.getMonth()+1+'').padStart(2,'0')+'/'+d.getFullYear()}
 
 // === INIT ===
@@ -249,6 +256,14 @@ function rc(p){
   let todoHTML='<div class="todo-list">';
   (p.todos||[]).forEach((t,i)=>{
     todoHTML+='<div class="todo-item"><div class="todo-cb'+(t.done?' done':'')+'" onclick="toggleTodo(\''+p.id+'\','+i+')"></div><span class="todo-text'+(t.done?' done':'')+'">'+esc(t.text)+'</span><span class="todo-del" onclick="delTodo(\''+p.id+'\','+i+')">✕</span></div>';
+  });
+  todoHTML+='</div>';
+  todoHTML+='<div class="todo-presets">';
+  const existingTexts=(p.todos||[]).map(t=>t.text);
+  TODO_PRESETS.forEach(t=>{
+    if(!existingTexts.includes(t)){
+      todoHTML+='<span class="todo-preset" onclick="addPresetTodo(\''+p.id+'\',\''+esc(t)+'\')">+ '+esc(t)+'</span>';
+    }
   });
   todoHTML+='</div>';
   todoHTML+='<div class="todo-add-row"><input class="todo-add-input" id="ti-'+p.id+'" placeholder="Ajouter une tache..." onkeydown="if(event.key===\'Enter\')addTodo(\''+p.id+'\')"><button class="todo-add-btn" onclick="addTodo(\''+p.id+'\')">+</button></div>';
@@ -351,6 +366,14 @@ async function delTodo(id,i){
   const p=P.find(x=>x.id===id);if(!p)return;
   p.todos.splice(i,1);
   await sav(p);render();
+}
+async function addPresetTodo(id,text){
+  const p=P.find(x=>x.id===id);if(!p)return;
+  if(!p.todos)p.todos=[];
+  if(!p.todos.find(t=>t.text===text)){
+    p.todos.push({text:text,done:false});
+    await sav(p);render();
+  }
 }
 
 // DELETE
