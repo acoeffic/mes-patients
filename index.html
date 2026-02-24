@@ -288,7 +288,7 @@ function rc(p){
   +'</div></div>';
 }
 
-function fh(p,k,l,ph){return '<div class="fld"><label>'+l+'</label><input value="'+esc(p[k]||'')+'"'+(ph?' placeholder="'+ph+'"':'')+' oninput="uf(\''+p.id+'\',\''+k+'\',this.value)"></div>'}
+function fh(p,k,l,ph){return '<div class="fld"><label>'+l+'</label><input value="'+esc(p[k]||'')+'"'+(ph?' placeholder="'+ph+'"':'')+' oninput="uf(\''+p.id+'\',\''+k+'\',this.value)" onblur="render()"></div>'}
 
 // === ACTIONS ===
 function tog(id){exId=exId===id?null:id;cfmId=null;render()}
@@ -300,7 +300,6 @@ async function addP(){
 
 function uf(id,f,v){
   const p=P.find(x=>x.id===id);if(!p)return;p[f]=v;debouncedSav(p);
-  if(['nom','prenom','chambre','chirurgien','motif'].includes(f))render();
 }
 
 // ATCD
