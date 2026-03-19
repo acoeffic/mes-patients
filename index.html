@@ -107,11 +107,37 @@ input,textarea{-webkit-appearance:none}
 .todo-preset{padding:5px 10px;border-radius:16px;font-size:11px;font-weight:500;cursor:pointer;border:1.5px solid #d0ebff;background:#e7f5ff;color:#1971c2;user-select:none;transition:all .15s}
 .todo-preset:active{background:#d0ebff}
 
+/* === SUIVI CLINIQUE === */
+.suivi-grid{display:flex;flex-direction:column;gap:6px}
+.suivi-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:10px;
+  border:1.5px solid #e9ecef;background:#f8f9fa;
+  cursor:pointer;user-select:none;
+  transition:all .2s cubic-bezier(.34,1.56,.64,1);
+}
+.suivi-item.ok{
+  background:#ebfbee;border-color:#8ce99a;
+}
+.suivi-item:active{transform:scale(.97)}
+.suivi-check{
+  width:22px;height:22px;border-radius:50%;border:2px solid #ced4da;background:#fff;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:all .2s cubic-bezier(.34,1.56,.64,1);
+  font-size:13px;
+}
+.suivi-item.ok .suivi-check{
+  background:#2f9e44;border-color:#2f9e44;color:#fff;
+}
+.suivi-label{font-size:13px;font-weight:500;color:#495057;flex:1;transition:all .2s}
+.suivi-item.ok .suivi-label{color:#2f9e44;font-weight:600}
+.suivi-status{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;transition:all .2s}
+.suivi-item:not(.ok) .suivi-status{background:#f1f3f5;color:#adb5bd}
+.suivi-item.ok .suivi-status{background:#d3f9d8;color:#2f9e44}
+
 .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#212529;color:#fff;padding:10px 20px;border-radius:10px;font-size:14px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%;text-align:center}
 .toast.show{opacity:1}
 #importInput{display:none}
-.tools{display:flex;gap:8px;margin:12px 16px 0}
-.bt{flex:1;padding:8px;border-radius:8px;border:1px solid #dee2e6;background:#fff;font-size:12px;font-weight:500;color:#495057;cursor:pointer;text-align:center}
 
 .todo-badge{background:#e03131;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:6px}
 </style>
@@ -127,19 +153,14 @@ input,textarea{-webkit-appearance:none}
 <input type="text" id="si" placeholder="Rechercher un patient..." oninput="render()">
 </div></div>
 
-<div class="tools">
-<button class="bt" onclick="exportAll()">Sauvegarder</button>
-<button class="bt" onclick="document.getElementById('importInput').click()">Restaurer</button>
-<button class="bt" onclick="purge()">Purger vides</button>
-<input type="file" id="importInput" accept=".json" onchange="importD(event)">
-</div>
+
 
 <div class="patient-list" id="pl"></div>
 <div class="toast" id="toast"></div>
 
 <script>
 // === DB ===
-const DN='PatientsDB',DV=4,ST='patients';
+const DN='PatientsDB',DV=5,ST='patients';
 function odb(){return new Promise((s,j)=>{const r=indexedDB.open(DN,DV);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains(ST))d.createObjectStore(ST,{keyPath:'id'})};r.onsuccess=()=>s(r.result);r.onerror=()=>j(r.error)})}
 async function getAll(){const d=await odb();return new Promise((s,j)=>{const t=d.transaction(ST,'readonly'),r=t.objectStore(ST).getAll();r.onsuccess=()=>s(r.result||[]);r.onerror=()=>j(r.error)})}
 async function sav(p){const d=await odb();return new Promise((s,j)=>{const t=d.transaction(ST,'readwrite');t.objectStore(ST).put(p);t.oncomplete=()=>s();t.onerror=()=>j(t.error)})}
@@ -170,7 +191,17 @@ const TODO_PRESETS=[
   'Scanner','Hemocultures','ECBU',
   'Antibiotiques','Anticoagulation',
 ];
-  
+
+// === SUIVI CLINIQUE ===
+const SUIVI_ITEMS=[
+  {k:'tvp',    label:'Absence de TVP / EP',     ok:'✓ Absence de TVP / EP'},
+  {k:'analg',  label:'Analgésie contrôlée',      ok:'✓ Analgésie contrôlée'},
+  {k:'miction',label:'Reprise de la miction',    ok:'✓ Reprise de la miction'},
+  {k:'selles', label:'Reprise de selles',        ok:'✓ Reprise de selles'},
+];
+
+function defaultSuivi(){const s={};SUIVI_ITEMS.forEach(i=>s[i.k]=false);return s;}
+
 function todayFull(){const d=new Date();return (d.getDate()+'').padStart(2,'0')+'/'+(d.getMonth()+1+'').padStart(2,'0')+'/'+d.getFullYear()}
 
 // === INIT ===
@@ -182,6 +213,7 @@ async function init(){P=await getAll();
     if(!p.atcdCustom)p.atcdCustom=[];
     if(!p.allergies)p.allergies='';
     if(!p.todos)p.todos=[];
+    if(!p.suivi)p.suivi=defaultSuivi();
   });
   render();
 }
@@ -212,7 +244,7 @@ function getTrend(p,bilanIdx,key){
 // === RENDER ===
 function render(){
   const q=document.getElementById('si').value.toLowerCase().trim();
-  let f=P;if(q)f=P.filter(p=>[p.nom,p.prenom,p.chambre,p.ipp,p.motif,p.chirurgien].some(v=>(v||'').toLowerCase().includes(q)));
+  let f=P;if(q)f=P.filter(p=>[p.nom,p.prenom,p.chambre,p.motif,p.chirurgien].some(v=>(v||'').toLowerCase().includes(q)));
   document.getElementById('cnt').textContent=P.length+' patient'+(P.length!==1?'s':'');
   const el=document.getElementById('pl');
   if(!f.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏥</div><div class="empty-title">'+(q?'Aucun resultat':'Aucun patient')+'</div><div class="empty-sub">'+(q?'Essaie un autre terme':'Appuie sur +')+'</div></div>';return}
@@ -268,9 +300,23 @@ function rc(p){
   todoHTML+='</div>';
   todoHTML+='<div class="todo-add-row"><input class="todo-add-input" id="ti-'+p.id+'" placeholder="Ajouter une tache..." onkeydown="if(event.key===\'Enter\')addTodo(\''+p.id+'\')"><button class="todo-add-btn" onclick="addTodo(\''+p.id+'\')">+</button></div>';
 
+  // Suivi clinique
+  const sv=p.suivi||defaultSuivi();
+  const doneCount=SUIVI_ITEMS.filter(i=>sv[i.k]).length;
+  let suiviHTML='<div class="suivi-grid">';
+  SUIVI_ITEMS.forEach(item=>{
+    const checked=!!sv[item.k];
+    suiviHTML+=`<div class="suivi-item${checked?' ok':''}" onclick="toggleSuivi('${p.id}','${item.k}')">
+      <div class="suivi-check">${checked?'✓':''}</div>
+      <span class="suivi-label">${checked?item.ok:item.label}</span>
+      <span class="suivi-status">${checked?'OK':'—'}</span>
+    </div>`;
+  });
+  suiviHTML+='</div>';
+
   return '<div class="card"><div class="card-header" onclick="tog(\''+p.id+'\')"><div class="card-info"><div class="card-name">'+esc(p.nom||'—')+' '+esc(p.prenom||'')+todoBadge+'</div><div class="card-detail">'+esc(dt)+'</div></div><svg class="chev '+(op?'open':'')+'" width="20" height="20" viewBox="0 0 20 20"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div><div class="card-body '+(op?'open':'')+'">'
 
-  +'<div class="grid2">'+fh(p,'nom','Nom')+fh(p,'prenom','Prenom')+fh(p,'ddn','DDN','JJ/MM/AAAA')+fh(p,'ipp','IPP')+fh(p,'chambre','Chambre')+fh(p,'chirurgien','Chirurgien')+fh(p,'motif','Motif','Pneumopathie...')+'</div>'
+  +'<div class="grid2">'+fh(p,'nom','Nom')+fh(p,'prenom','Prenom')+fh(p,'age','Âge','ans')+fh(p,'chambre','Chambre')+fh(p,'chirurgien','Chirurgien')+fh(p,'motif','Motif','Pneumopathie...')+'</div>'
 
   +'<div class="mb12"><label class="sl">Allergies</label><input class="allergy-box" value="'+esc(p.allergies||'')+'" placeholder="Aucune allergie connue" oninput="uf(\''+p.id+'\',\'allergies\',this.value)"></div>'
 
@@ -279,6 +325,8 @@ function rc(p){
   +'<div class="mb12"><label class="sl">Biologie</label>'+bTabs+bh+'</div>'
 
   +'<div class="mb12"><label class="sl">A faire</label>'+todoHTML+'</div>'
+
+  +'<div class="mb12"><label class="sl">Suivi clinique · '+doneCount+'/'+SUIVI_ITEMS.length+'</label>'+suiviHTML+'</div>'
 
   +'<div class="mb12"><label class="sl">Notes</label><textarea class="fi" rows="3" placeholder="Remarques..." oninput="uf(\''+p.id+'\',\'notes\',this.value)">'+esc(p.notes||'')+'</textarea></div>'
 
@@ -294,7 +342,7 @@ function fh(p,k,l,ph){return '<div class="fld"><label>'+l+'</label><input value=
 function tog(id){exId=exId===id?null:id;cfmId=null;render()}
 
 async function addP(){
-  const p={id:Date.now()+''+Math.random().toString(36).slice(2,6),nom:'',prenom:'',ddn:'',ipp:'',chambre:'',chirurgien:'',motif:'',atcdList:[],atcdCustom:[],allergies:'',bilans:[],todos:[],notes:'',createdAt:new Date().toISOString()};
+  const p={id:Date.now()+''+Math.random().toString(36).slice(2,6),nom:'',prenom:'',age:'',chambre:'',chirurgien:'',motif:'',atcdList:[],atcdCustom:[],allergies:'',bilans:[],todos:[],suivi:defaultSuivi(),notes:'',createdAt:new Date().toISOString()};
   P.unshift(p);await sav(p);exId=p.id;render();tw('Patient ajoute');
 }
 
@@ -343,7 +391,6 @@ function uBio(id,bi,k,v){
   const p=P.find(x=>x.id===id);if(!p||!p.bilans[bi])return;
   if(!p.bilans[bi].bio)p.bilans[bi].bio={};
   p.bilans[bi].bio[k]=v;debouncedSav(p);
-  // Re-render pour mettre à jour couleurs/tendances
   clearTimeout(saveTimers['render_'+id]);
   saveTimers['render_'+id]=setTimeout(()=>render(),500);
 }
@@ -375,6 +422,14 @@ async function addPresetTodo(id,text){
   }
 }
 
+// SUIVI CLINIQUE
+async function toggleSuivi(id,key){
+  const p=P.find(x=>x.id===id);if(!p)return;
+  if(!p.suivi)p.suivi=defaultSuivi();
+  p.suivi[key]=!p.suivi[key];
+  await sav(p);render();
+}
+
 // DELETE
 function askDel(id){cfmId=id;render()}
 function cancelDel(){cfmId=null;render()}
@@ -385,8 +440,7 @@ function buildMsg(p){
   let l=[];
   const name=[p.nom,p.prenom].filter(Boolean).join(' ');
   if(name)l.push('🏥 '+name);
-  if(p.ddn)l.push('DDN: '+p.ddn);
-  if(p.ipp)l.push('IPP: '+p.ipp);
+  if(p.age)l.push('Âge: '+p.age+' ans');
   if(p.chambre)l.push('Chambre: '+p.chambre);
   if(p.chirurgien)l.push('Chirurgien: '+p.chirurgien);
   if(p.motif)l.push('Motif: '+p.motif);
@@ -406,6 +460,11 @@ function buildMsg(p){
   }
   const pending=(p.todos||[]).filter(t=>!t.done);
   if(pending.length)l.push('\nA faire:\n'+pending.map(t=>'☐ '+t.text).join('\n'));
+  // Suivi clinique dans le message partagé
+  if(p.suivi){
+    const suiviLines=SUIVI_ITEMS.map(i=>p.suivi[i.k]?'✓ '+i.label:'☐ '+i.label);
+    l.push('\nSuivi clinique:\n'+suiviLines.join('\n'));
+  }
   if(p.notes)l.push('\nNotes: '+p.notes);
   return l.join('\n');
 }
@@ -414,7 +473,6 @@ async function shareMsg(id){
   const p=P.find(x=>x.id===id);if(!p)return;
   const msg=buildMsg(p);
   const name=[p.nom,p.prenom].filter(Boolean).join(' ')||'Patient';
-
   if(navigator.share){
     try{
       await navigator.share({title:name,text:msg});
@@ -436,12 +494,12 @@ function copyFallback(msg){
 // === BACKUP ===
 async function exportAll(){const a=await getAll(),b=new Blob([JSON.stringify(a,null,2)],{type:'application/json'}),l=document.createElement('a');l.href=URL.createObjectURL(b);l.download='patients-'+new Date().toISOString().slice(0,10)+'.json';l.click();tw('Sauvegarde telechargee')}
 async function importD(e){const file=e.target.files?.[0];if(!file)return;try{const t=await file.text(),imp=JSON.parse(t);let c=0;for(const p of imp){if(p.id&&!P.find(x=>x.id===p.id)){P.push(p);await sav(p);c++}}render();tw(c+' importe(s)')}catch{tw("Erreur")}e.target.value=''}
-async function purge(){const rm=P.filter(p=>!p.nom&&!p.prenom&&!p.ipp);if(!rm.length){tw('Rien a purger');return}for(const p of rm)await del(p.id);P=P.filter(p=>p.nom||p.prenom||p.ipp);render();tw(rm.length+' vide(s) supprimee(s)')}
+async function purge(){const rm=P.filter(p=>!p.nom&&!p.prenom);if(!rm.length){tw('Rien a purger');return}for(const p of rm)await del(p.id);P=P.filter(p=>p.nom||p.prenom);render();tw(rm.length+' vide(s) supprimee(s)')}
 
 function tw(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2500)}
 
 // === SW ===
-if('serviceWorker'in navigator){const s="self.addEventListener('install',e=>e.waitUntil(caches.open('pv8').then(c=>c.addAll(['./'])).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('Offline'))))});";navigator.serviceWorker.register(URL.createObjectURL(new Blob([s],{type:'application/javascript'}))).catch(()=>{})}
+if('serviceWorker'in navigator){const s="self.addEventListener('install',e=>e.waitUntil(caches.open('pv9').then(c=>c.addAll(['./'])).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('Offline'))))});";navigator.serviceWorker.register(URL.createObjectURL(new Blob([s],{type:'application/javascript'}))).catch(()=>{})}
 </script>
 </body>
 </html>
